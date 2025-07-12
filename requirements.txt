@@ -1,0 +1,9 @@
+Django=5.2.3
+psycopg2-binary=2.9.10
+python-dotenv=1.1.0
+langgraph=0.5.2
+langsmith=0.4.5
+langchain-groq=0.3.6
+langchain-google-genai=2.1.7
+langchain_mistralai=0.2.11
+python-dotenv
