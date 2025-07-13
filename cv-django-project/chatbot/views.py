@@ -9,7 +9,7 @@ from .models import ChatHistory, MessageHistory
 from .loggerChatbot import logger
 
 @csrf_exempt
-def call_info_chatbot(request):
+async def call_info_chatbot(request):
     if request.method=="POST":
         try:
             if request.content_type == 'application/json':
@@ -38,8 +38,8 @@ def call_info_chatbot(request):
                 "status": 200                
                 }
 
-            res = graph.invoke(inital_state)
-            return JsonResponse({"status": "success", "response": res['answer']})
+            res = await graph.ainvoke(inital_state)
+            return JsonResponse({"status": "success", "response": res['answer'], "classifer": res['classifier']})
         
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")

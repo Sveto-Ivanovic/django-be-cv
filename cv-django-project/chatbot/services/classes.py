@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Annotated, Any, Dict, List
 from uuid import UUID
+from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 from langchain_core.callbacks import BaseCallbackHandler
 from langgraph.graph.message import add_messages
@@ -13,6 +14,7 @@ from ..loggerChatbot import logger
 class State(TypedDict):
     chat_memo: ChatHistory
     message_memo: MessageHistory
+    chat_record: Any
     llm_config: Dict
     query: str
     memory: List
@@ -45,3 +47,9 @@ class LangchainCallback(BaseCallbackHandler):
         logger.info(f"Serialized: {serialized}")
         logger.info(f"Prompts: {prompts}")
         logger.info(f"Metadata: {metadata}")
+
+
+class ResponseFormatterClassifier(BaseModel):
+    """Always use this tool to structure your response to the user."""
+    answer: List[str] = Field(description="The output of the classifier model, which is a list of strings. Each string is a classification result.")
+

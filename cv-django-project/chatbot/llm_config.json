@@ -3,6 +3,14 @@
         "temperature": 0,
         "retry": 2,
         "fallbacks":[],
-        "llm_model": "gemini-2.5-flash"
+        "llm_model": "gemini-2.5-flash",
+        "thinking_budget": 0
+    },
+    "agent_classifier":{
+        "temperature": 0,
+        "retry": 2,
+        "fallbacks":[],
+        "llm_model": "gemini-2.5-flash",
+        "thinking_budget": 0
     }
 }
