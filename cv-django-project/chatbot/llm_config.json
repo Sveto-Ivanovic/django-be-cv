@@ -1,4 +1,7 @@
-{
+{   "call_config":{
+        "number_of_messages_per_conversation": 6,
+        "number_of_characters_per_message": 200
+    },
     "agent_response":{
         "temperature": 0,
         "retry": 2,
@@ -9,6 +12,22 @@
     "agent_classifier":{
         "temperature": 0,
         "retry": 2,
+        "fallbacks":[],
+        "llm_model": "gemini-2.5-flash",
+        "thinking_budget": 0
+    },
+    "agent_contact_flow":{
+        "temperature": 0,
+        "retry": 2,
+        "fallbacks":[],
+        "enabled": true,
+        "llm_model": "gemini-2.5-flash",
+        "thinking_budget": 0
+    },
+    "agent_real_time_knowledge_flow":{
+        "temperature": 0,
+        "retry": 2,
+        "enabled": true,
         "fallbacks":[],
         "llm_model": "gemini-2.5-flash",
         "thinking_budget": 0

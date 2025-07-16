@@ -25,6 +25,7 @@ class MessageHistory(models.Model):
     status_code = models.IntegerField(blank=False, null=False)
     request_time_seconds = models.IntegerField(blank=False, null=False)
     times_per_service = JSONField()
+    contact_info = models.CharField(max_length=1000, blank=True, null=True)
     
     def __str__(self):
         return f"Message details for {self.id} at {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"

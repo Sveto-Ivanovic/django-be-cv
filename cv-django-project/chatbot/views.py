@@ -23,8 +23,7 @@ async def call_info_chatbot(request):
             config = load_json_file("llm_config.json")
 
             inital_state = {
-                "chat_memo": ChatHistory,
-                "message_memo": MessageHistory,
+                "chat_record_history": [],
                 "query": data.get("question"),
                 "conv_id": data.get("conv_id"),
                 "llm_config": config,
@@ -35,7 +34,12 @@ async def call_info_chatbot(request):
                 "llm_calls": {},
                 "costs": {},
                 "answer": "",
-                "status": 200                
+                "status": 200,
+                "start_time": 0,
+                "contact_info": "",
+                "real_time_context": "",
+                "limit_exceeded": False,
+                "limit_exceeded_message": ""             
                 }
 
             res = await graph.ainvoke(inital_state)
@@ -45,8 +49,8 @@ async def call_info_chatbot(request):
             logger.error("Error decoding JSON")
             return JsonResponse({"status": "error", "message": "Invalid JSON payload"}, status=400)
         except Exception as e:
-            logger.error(f"Error occured in send_message endpoint: {e}")
-            return JsonResponse({"status": "error", "message": e}, status=401)
+            logger.error(f"Error occured in send_message endpoint: {str(e)}")
+            return JsonResponse({"status": "error", "message": str(e)}, status=401)
 
    
     return HttpResponse("Invalid request method. Please use POST to send a message.")

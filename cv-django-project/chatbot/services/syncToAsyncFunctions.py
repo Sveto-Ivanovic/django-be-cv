@@ -24,6 +24,16 @@ def create_chat_item(model, conv_id):
     return time_taken, chat_item
 
 @sync_to_async
+def update_chat_history(conv_id, chat_record_history, chat_record):
+    start_time = time.time()
+    chat_item = chat_record.objects.get(id=conv_id)
+    chat_item.history = chat_record_history
+    chat_item.last_updated_at = timezone.now()
+    chat_item.save()
+    time_taken = time.time() - start_time
+    return time_taken
+
+@sync_to_async
 def save_chat_item(chat_item):
     start_time = time.time()
     chat_item.save()
@@ -40,9 +50,10 @@ def create_message_item(model, state):
             answer=state["answer"],
             agent_calls=state["llm_calls"],
             retrieved_doc_ids=state["retrieved_doc_ids"],
-            status_code=200,
-            request_time_seconds=0,
-            times_per_service=state["func_times"]
+            status_code= state["status"],
+            request_time_seconds=start_time-state["start_time"],
+            times_per_service=state["func_times"],
+            contact_info=state.get("contact_info", "")
     )
     time_taken = time.time() - start_time
     return time_taken, message_item
