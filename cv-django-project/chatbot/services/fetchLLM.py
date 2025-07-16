@@ -15,19 +15,25 @@ os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
 os.environ["MISTRAL_API_KEY"] = os.getenv("MISTRAL_API_KEY")
 
 
-def fetchLLMFallbacks(task: str, fallbacks_models: List[str] = None, temperature: int = 0, thinking_budget: int = None):
+def fetchLLMFallbacks(state, task: str, fallbacks_models: List[str] = None, temperature: int = 0, thinking_budget: int = None, structured_output=None):
     llms=[]
     for model_name in fallbacks_models:
         if 'gemini' in model_name:
             if thinking_budget and model_name in "gemini-2.5-flash":
-                llms.append(ChatGoogleGenerativeAI(model= model_name, temperature=temperature, thinking_budget = thinking_budget).with_config(callbacks=[LangchainCallback(model_name, "Gemini", task)]))
+                llm= ChatGoogleGenerativeAI(model= model_name, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
+                llm = structureLLM(llm, structured_output)
+                llms.append(llm)
             else:
-                llms.append(ChatGoogleGenerativeAI(model= model_name, temperature=temperature).with_config(callbacks=[LangchainCallback(model_name, "Gemini", task)]))
+                llm = ChatGoogleGenerativeAI(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
+                llm = structureLLM(llm, structured_output)
+                llms.append(llm)
         elif 'tral' in model_name:
-            llms.append(ChatMistralAI(model= model_name, temperature=temperature).with_config(callbacks=[LangchainCallback(model_name, "Minstral", task)]))
+            llm = ChatMistralAI(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Minstral", task)])
+            llm = structureLLM(llm, structured_output)
+            llms.append(llm)
     return llms
 
-def fetchLLM(llm_model: str, task: str, fallbacks_models: List[str] = None, retry: int = 2, temperature: int = 0, thinking_budget: int = None):
+def fetchLLM(state, llm_model: str, task: str, fallbacks_models: List[str] = None, retry: int = 2, temperature: int = 0, thinking_budget: int = None, structured_output=None):  
     """
     Supports return of only Mistral and gemini models
     """
@@ -35,22 +41,43 @@ def fetchLLM(llm_model: str, task: str, fallbacks_models: List[str] = None, retr
 
         if fallbacks_models is None:
             if thinking_budget and llm_model in "gemini-2.5-flash":
-                return ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, thinking_budget = thinking_budget).with_config(callbacks=[LangchainCallback(llm_model, "Gemini", task)]).with_retry(stop_after_attempt=retry)
+                llm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                llm = structureLLM(llm, structured_output)
+                return llm.with_retry(stop_after_attempt=retry)
             else:
-                return ChatGoogleGenerativeAI(model= llm_model, temperature=temperature).with_config(callbacks=[LangchainCallback(llm_model, "Gemini", task)]).with_retry(stop_after_attempt=retry)
+                llm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                llm = structureLLM(llm, structured_output)
+                return llm.with_retry(stop_after_attempt=retry)
         else:
-            fallback_llms = fetchLLMFallbacks(task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget)
+            fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
             if thinking_budget and llm_model in "gemini-2.5-flash":
-                primaryllm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, thinking_budget = thinking_budget).with_config(callbacks=[LangchainCallback(llm_model, "Gemini", task)]).with_retry(stop_after_attempt=retry)
+                primaryllm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                primaryllm = structureLLM(primaryllm, structured_output)
+                primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
                 return primaryllm.with_fallbacks(fallback_llms)
             else:
-                primaryllm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature).with_config(callbacks=[LangchainCallback(llm_model, "Gemini", task)]).with_retry(stop_after_attempt=retry)
+                primaryllm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                primaryllm = structureLLM(primaryllm, structured_output)
+                primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
                 return primaryllm.with_fallbacks(fallback_llms)
  
     elif 'tral' in llm_model:
         if fallbacks_models is None:
-            return ChatMistralAI(model= llm_model, temperature=temperature).with_config(callbacks=[LangchainCallback(llm_model, "Minstral", task)]).with_retry(stop_after_attempt=retry)
+            llm = ChatMistralAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
+            llm = structureLLM(llm, structured_output)
+            llm = llm.with_retry(stop_after_attempt=retry)
+            return llm
         else:
-            fallback_llms = fetchLLMFallbacks(task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget)
-            primaryllm = ChatMistralAI(model= llm_model, temperature=temperature).with_config(callbacks=[LangchainCallback(llm_model, "Minstral", task)]).with_retry(stop_after_attempt=retry)
+            fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
+            primaryllm=ChatMistralAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
+            primaryllm = structureLLM(primaryllm, structured_output)
+            primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
             return primaryllm.with_fallbacks(fallback_llms)
+
+def structureLLM(llm, structured_output=None):
+    """
+    Function to structure the LLM output
+    """
+    if structured_output is not None:
+        llm = llm.with_structured_output(structured_output)
+    return llm

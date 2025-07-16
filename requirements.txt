@@ -7,3 +7,5 @@ langchain-groq=0.3.6
 langchain-google-genai=2.1.7
 langchain_mistralai=0.2.11
 python-dotenv
+ipython=9.4.0
+colorama=0.4.6
