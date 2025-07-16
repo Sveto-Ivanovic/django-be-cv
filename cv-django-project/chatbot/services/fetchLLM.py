@@ -4,6 +4,7 @@ from typing import List
 from .classes import LangchainCallback
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_mistralai import ChatMistralAI
+from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -13,6 +14,7 @@ load_dotenv()
 
 os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
 os.environ["MISTRAL_API_KEY"] = os.getenv("MISTRAL_API_KEY")
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 
 def fetchLLMFallbacks(state, task: str, fallbacks_models: List[str] = None, temperature: int = 0, thinking_budget: int = None, structured_output=None):
@@ -29,6 +31,10 @@ def fetchLLMFallbacks(state, task: str, fallbacks_models: List[str] = None, temp
                 llms.append(llm)
         elif 'tral' in model_name:
             llm = ChatMistralAI(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Minstral", task)])
+            llm = structureLLM(llm, structured_output)
+            llms.append(llm)
+        else:
+            llm = ChatGroq(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Groq", task)])
             llm = structureLLM(llm, structured_output)
             llms.append(llm)
     return llms
@@ -70,6 +76,18 @@ def fetchLLM(state, llm_model: str, task: str, fallbacks_models: List[str] = Non
         else:
             fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
             primaryllm=ChatMistralAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
+            primaryllm = structureLLM(primaryllm, structured_output)
+            primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
+            return primaryllm.with_fallbacks(fallback_llms)
+    else:
+        if fallbacks_models is None:
+            llm = ChatGroq(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Groq", task)])
+            llm = structureLLM(llm, structured_output)
+            llm = llm.with_retry(stop_after_attempt=retry)
+            return llm
+        else:
+            fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
+            primaryllm=ChatGroq(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Groq", task)])
             primaryllm = structureLLM(primaryllm, structured_output)
             primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
             return primaryllm.with_fallbacks(fallback_llms)
