@@ -21,5 +21,6 @@ from django.urls import include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("messages/", include("sendmessages.urls")),
-    path("chatbot/", include("chatbot.urls"))
+    path("chatbot/", include("chatbot.urls")),
+    path("embed/", include("embed.urls"))
 ]
