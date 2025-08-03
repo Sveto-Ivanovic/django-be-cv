@@ -17,6 +17,10 @@ headers = {
 
 
 def get_text_embedding_jina(textual_query: str, model_name: str):
+    """    Fetches the Jina embedding model for use in vector embeddings.
+    :param textual_query: Textual query to embed
+    :param model_name: Name of the Jina embedding model
+    :return: Embedding vector"""
     try:
         data = {
         "model": model_name,
@@ -39,6 +43,12 @@ def get_text_embedding_jina(textual_query: str, model_name: str):
     
 
 def get_text_embeddings_jina(textual_queries: list, model_name: str):
+    """    
+    Fetches the Jina embedding model for use in vector embeddings.
+
+    :param textual_queries: List of text queries to embed   
+    :param model_name: Name of the Jina embedding model
+    :return: List of embedding vectors"""
     try:
         text_inputs = []
         for text in textual_queries:
@@ -71,6 +81,12 @@ def get_text_embeddings_jina(textual_queries: list, model_name: str):
 
 
 def get_image_embedding_jina(image_base64_str_or_url: str, model_name: str):
+    """    
+    Fetches the Jina embedding model for use in vector embeddings.
+
+    :param image_base64_str_or_url: Base64 encoded image string or URL
+    :param model_name: Name of the Jina embedding model
+    :return: Image embedding vector"""
     try:
         data = {
         "model": model_name,
@@ -93,6 +109,12 @@ def get_image_embedding_jina(image_base64_str_or_url: str, model_name: str):
     
 
 def get_image_embeddings_jina(image_base64_str_or_url: list, model_name: str):
+    """    
+    Fetches the Jina embedding model for use in vector embeddings.
+    
+    :param image_base64_str_or_url: List of base64 encoded image strings or URLs
+    :param model_name: Name of the Jina embedding model
+    :return: List of image embeddings"""
     try:
         image_inputs = []
         for image_url_txt in image_base64_str_or_url:
@@ -125,6 +147,12 @@ def get_image_embeddings_jina(image_base64_str_or_url: list, model_name: str):
 
 
 async def get_text_embedding_jina_async(textual_query: str, model_name: str):
+    """
+    Asynchronously fetches the Jina embedding model for use in vector embeddings.
+    
+    :param textual_query: Textual query to embed
+    :param model_name: Name of the Jina embedding model
+    :return: Token usage and embedding vector"""
     try:
         data = {
         "model": model_name,
@@ -135,7 +163,7 @@ async def get_text_embedding_jina_async(textual_query: str, model_name: str):
         async with aiohttp.ClientSession() as session:
             async with session.post(url=url, headers=headers, json=data) as response:
 
-                response_json = response.json()
+                response_json = await response.json()
 
                 if "Invalid API key" in response_json.get("detail",""):
                     raise ValueError(f"Invalid Jina API key: {str(e)}")
@@ -155,6 +183,12 @@ async def get_text_embedding_jina_async(textual_query: str, model_name: str):
 
 
 async def get_text_embeddings_jina_async(textual_queries: list, model_name: str):
+    """
+    Asynchronously fetches the Jina embedding model for use in vector embeddings.
+
+    :param textual_queries: List of text queries to embed
+    :param model_name: Name of the Jina embedding model
+    :return: Token usage and list of embedding vectors"""
     try:
         text_inputs = []
         for text in textual_queries:
@@ -168,7 +202,7 @@ async def get_text_embeddings_jina_async(textual_queries: list, model_name: str)
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url=url, headers=headers, json=data) as response:
-                response_json = response.json()
+                response_json = await response.json()
 
                 if "Invalid API key" in response_json.get("detail",""):
                     raise ValueError(f"Invalid Jina API key: {str(e)}")
@@ -193,6 +227,12 @@ async def get_text_embeddings_jina_async(textual_queries: list, model_name: str)
 
 
 async def get_image_embedding_jina_async(image_base64_str_or_url: str, model_name: str):
+    """
+    Asynchronously fetches the Jina embedding model for use in vector embeddings.
+
+    :param image_base64_str_or_url: Base64 encoded image string or URL
+    :param model_name: Name of the Jina embedding model
+    :return: Token usage and image embedding vector"""
     try:
         data = {
         "model": model_name,
@@ -202,7 +242,7 @@ async def get_image_embedding_jina_async(image_base64_str_or_url: str, model_nam
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url=url, headers=headers, json=data) as response:
-                response_json = response.json()
+                response_json = await response.json()
 
                 if "Invalid API key" in response_json.get("detail",""):
                     raise ValueError(f"Invalid Jina API key: {str(e)}")
@@ -221,6 +261,12 @@ async def get_image_embedding_jina_async(image_base64_str_or_url: str, model_nam
 
 
 async def get_image_embeddings_jina_async(image_base64_str_or_url: list, model_name: str):
+    """
+    Asynchronously fetches the Jina embedding model for use in vector embeddings.
+    
+    :param image_base64_str_or_url: List of base64 encoded image strings or URLs
+    :param model_name: Name of the Jina embedding model
+    :return: Token usage and list of image embeddings"""
     try:
         image_inputs = []
         for image_url_txt in image_base64_str_or_url:
@@ -234,7 +280,7 @@ async def get_image_embeddings_jina_async(image_base64_str_or_url: list, model_n
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url=url, headers=headers, json=data) as response:
-                response_json = response.json()
+                response_json = await response.json()
 
                 if "Invalid API key" in response_json.get("detail",""):
                     raise ValueError(f"Invalid Jina API key: {str(e)}")

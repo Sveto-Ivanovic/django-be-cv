@@ -13,6 +13,7 @@ def fetch_embedding_with_gemini(textual_query:str, model_name: str):
     Fetches the Gemini embedding model for use in vector embeddings.
     """
     try:
+        model_name = f"models/{model_name}" if model_name == "gemini-embedding-001" else model_name
         embed = GoogleGenerativeAIEmbeddings(model=model_name)
         vector = embed.embed_query(textual_query)
         return vector
@@ -25,6 +26,7 @@ def fetch_embeddings_with_gemini(textual_queries: list, model_name: str):
     Fetches the Gemini embedding model for use in vector embeddings.
     """
     try:
+        model_name = f"models/{model_name}" if model_name == "gemini-embedding-001" else model_name
         embed = GoogleGenerativeAIEmbeddings(model=model_name)
         vectors = embed.embed_documents(textual_queries)
         return vectors
@@ -37,6 +39,7 @@ async def async_fetch_embedding_with_gemini(textual_query: str, model_name: str)
     Asynchronously fetches the Gemini embedding model for use in vector embeddings.
     """
     try:
+        model_name = f"models/{model_name}" if model_name == "gemini-embedding-001" else model_name
         embed = GoogleGenerativeAIEmbeddings(model=model_name)
         vector = await embed.aembed_query(textual_query)
         return vector
@@ -49,6 +52,7 @@ async def async_fetch_embeddings_with_gemini(textual_queries: list, model_name: 
     Asynchronously fetches the Gemini embedding model for use in vector embeddings.
     """
     try:
+        model_name = f"models/{model_name}" if model_name == "gemini-embedding-001" else model_name
         embed = GoogleGenerativeAIEmbeddings(model=model_name)
         vectors = await embed.aembed_documents(textual_queries)
         return vectors

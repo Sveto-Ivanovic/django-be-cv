@@ -4,7 +4,7 @@ import os
 from django.conf import settings
 
 def load_json_file(filepath: str) -> dict:
-    full_path = os.path.join(settings.BASE_DIR, 'chatbot', filepath)
+    full_path = os.path.join(settings.BASE_DIR, 'embed', filepath)
     if not os.path.exists(full_path):
         raise FileNotFoundError(f"The file {full_path} does not exist.")
     try:

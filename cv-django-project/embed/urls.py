@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import views_pinecone
+from .views import views_pinecone, views_embed
 
 urlpatterns = [
     path("create_pinecone_index/", views_pinecone.create_pinecone_index, name="create_pinecone_endpoint"),
@@ -8,6 +8,5 @@ urlpatterns = [
     path("fetch_pinecone_index_data/", views_pinecone.fetch_pinecone_index_data, name="fetch_pinecone_index_data"),    
     path("fetch_pinecone_index_record/", views_pinecone.fetch_pinecone_index_record, name="fetch_pinecone_index_record"),
     path("delete_pinecone_index_record/", views_pinecone.delete_pinecone_index_record, name="delete_pinecone_index_record"),
-    
-
+    path("embed_items_into_pinecone/", views_embed.embed_items_into_pinecone, name="embed_items_into_pinecone"),
 ]

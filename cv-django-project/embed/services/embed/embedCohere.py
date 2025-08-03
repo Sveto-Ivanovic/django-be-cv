@@ -11,13 +11,19 @@ os.environ["COHERE_API_KEY"] = cohere_api_key
 
 
 def fetch_embedding_with_cohere(textual_query: str, model_name: str):
+    """    
+    Fetches embedding with Cohere.
+    
+    :param textual_query: Textual query to embed
+    :param model_name: Name of the Cohere embedding model
+    :return: Embedding vector"""
     try:
         co = cohere.Client()
         response = co.embed(
             model=model_name,
             texts=[textual_query]
         )
-        vector = response.embeddings.float_[0]
+        vector = response.embeddings[0]
         return vector
     except Exception as e:
         logger.error(f"Error fetching Cohere embedding model: {str(e)}")
@@ -25,24 +31,29 @@ def fetch_embedding_with_cohere(textual_query: str, model_name: str):
     
 
 def fetch_embeddings_with_cohere(textual_queries: list, model_name: str):
+    """
+    Fetches embeddings with Cohere.
+    
+    :param textual_queries: List of text queries to embed
+    :param model_name: Name of the Cohere embedding model
+    :return: List of embedding vectors"""
     try:
         co = cohere.Client()
         response = co.embed(
             model=model_name,
             texts=textual_queries
         )
-        vectors = response.embeddings.float_
+        vectors = response.embeddings
         return vectors
     except Exception as e:
         logger.error(f"Error fetching Cohere embedding model: {str(e)}")
         raise ValueError(f"Error in fetching Cohere embedding model: {str(e)}")
 
 
-def fetch_image_embedding_with_cohere(stringified_buffer: str, image_format: str, model_name: str):
+def fetch_image_embedding_with_cohere(image_base64: str, model_name: str):
     try:
         co = cohere.Client()
-        image_base64 = f"data:{image_format};base64,{stringified_buffer}"
-        
+
         response = co.embed(
             model=model_name,
             input_type="image",
@@ -55,11 +66,16 @@ def fetch_image_embedding_with_cohere(stringified_buffer: str, image_format: str
         logger.error(f"Error fetching Cohere image embedding model: {str(e)}")
         raise ValueError(f"Error in fetching Cohere image embedding model: {str(e)}")
     
-def fetch_image_embeddings_with_cohere(stringified_buffers: list, image_format: str, model_name: str):
+def fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str):
+    """Fetches image embeddings with Cohere.
+
+    :param image_base64s: List of base64 encoded image strings
+    :param model_name: Name of the Cohere embedding model
+    :return: List of image embeddings
+    """
     try:
         co = cohere.Client()
-        image_base64s = [f"data:{image_format};base64,{buffer}" for buffer in stringified_buffers]
-        
+  
         response = co.embed(
             model=model_name,
             input_type="image",
@@ -74,26 +90,41 @@ def fetch_image_embeddings_with_cohere(stringified_buffers: list, image_format: 
     
 
 async def async_fetch_embedding_with_cohere(textual_query: str, model_name: str):
+    """Asynchronously fetches embedding with Cohere.
+
+    :param textual_query: Textual query to embed
+    :param model_name: Name of the Cohere embedding model
+    :return: Embedding vector
+    """
     try:
         co = cohere.AsyncClient()
         response = await co.embed(
             model=model_name,
             texts=[textual_query]
         )
-        vector = response.embeddings.float_[0]
+        vector = response.embeddings[0]
         return vector
     except Exception as e:
         logger.error(f"Error fetching Cohere embedding model: {str(e)}")
         raise ValueError(f"Error in fetching Cohere embedding model: {str(e)}")
     
+
+
 async def async_fetch_embeddings_with_cohere(textual_queries: list, model_name: str):
+    """Asynchronously fetches embeddings with Cohere.
+    
+    :param textual_queries: List of text queries to embed
+    :param model_name: Name of the Cohere embedding model
+    :return: List of embedding vectors
+    """
     try:
         co = cohere.AsyncClient()
         response = await co.embed(
             model=model_name,
             texts=textual_queries
         )
-        vectors = response.embeddings.float_
+
+        vectors = response.embeddings
         return vectors
     except Exception as e:
         logger.error(f"Error fetching Cohere embedding model: {str(e)}")
@@ -101,11 +132,16 @@ async def async_fetch_embeddings_with_cohere(textual_queries: list, model_name: 
     
 
 
-async def async_fetch_image_embedding_with_cohere(stringified_buffer: str, image_format: str, model_name: str):
+async def async_fetch_image_embedding_with_cohere(image_base64: str, model_name: str):
+    """Asynchronously fetches image embedding with Cohere.
+    
+    :param image_base64: Base64 encoded image string
+    :param model_name: Name of the Cohere embedding model
+    :return: Image embedding vector
+    """
     try:
         co = cohere.AsyncClient()
-        image_base64 = f"data:{image_format};base64,{stringified_buffer}"
-        
+
         response = await co.embed(
             model=model_name,
             input_type="image",
@@ -118,11 +154,17 @@ async def async_fetch_image_embedding_with_cohere(stringified_buffer: str, image
         logger.error(f"Error fetching Cohere image embedding model: {str(e)}")
         raise ValueError(f"Error in fetching Cohere image embedding model: {str(e)}")
 
-async def async_fetch_image_embeddings_with_cohere(stringified_buffers: list, image_format: str, model_name: str):
+async def async_fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str):
+    """
+    Asynchronously fetches image embeddings with Cohere.
+    
+    :param image_base64s: List of base64 encoded image strings
+    :param model_name: Name of the Cohere embedding model
+    :return: List of image embeddings
+    """
     try:
         co = cohere.AsyncClient()
-        image_base64s = [f"data:{image_format};base64,{buffer}" for buffer in stringified_buffers]
-        
+
         response = await co.embed(
             model=model_name,
             input_type="image",
