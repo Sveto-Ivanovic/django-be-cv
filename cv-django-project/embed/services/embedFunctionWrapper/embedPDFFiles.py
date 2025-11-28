@@ -1,4 +1,3 @@
-import base64
 import uuid
 from ..embed.embedCohere import async_fetch_image_embeddings_with_cohere, async_fetch_embeddings_with_cohere
 from ..embed.embedJina import get_image_embeddings_jina_async, get_text_embeddings_jina_async
@@ -6,7 +5,6 @@ from ..embed.embedGemini import async_fetch_embeddings_with_gemini
 from ...loggerChatbot import logger
 import asyncio
 from typing import List, Literal
-import requests
 from io import BytesIO
 from ..pdf_extractor.extractPdf import extract_pdf_content, extract_pdf_content_with_metadata
 from datetime import datetime
@@ -57,7 +55,14 @@ async def process_batch_with_retry_texts(
     max_retries: int = 3, 
     retry_delay: int = 1
 ):
-    """Process a batch with retry logic"""
+    """Process a batch with retry logic
+    
+    :param batch: List of texts to embed
+    :param model: Embedding model to use
+    :param max_retries: Maximum number of retries for failed batches
+    :param retry_delay: Delay between retries in seconds
+    :return: List of embeddings for the batch
+    """
     for attempt in range(max_retries):
         try:
             if model == "gemini-embedding-001":
@@ -168,7 +173,6 @@ async def get_image_text_embeddings(embed_model: str, image_text_data: List[dict
         param: mode: Mode of input data, values can be "text" or "image"
         return: Response list of objects compatible with Pinecone index
         """
-
         try:
             # Process images in batches with retries
             batch_size = 20 if mode == "image" else 100
@@ -235,7 +239,7 @@ async def get_image_text_embeddings(embed_model: str, image_text_data: List[dict
                 metadata["id"] = id
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
 
                 result.append({
                     "id": f"{id}_{i}",

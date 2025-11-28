@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 from ..loggerChatbot import logger
 from pinecone import Pinecone
 from ..services.helperFunctions import load_json_file
-from ..services.embedFunctionWrapper.validityChecker import check_embed_validity
+from ..services.embedFunctionWrapper.validityChecker import check_embed_validity, check_embed_validity_supabase
 from ..services.embedRecordPinecone import embed_record_pinecone_async
 from ..services.embedFunctionWrapper.validateEmbed import validate_embed_model
 from ..services.embedFunctionWrapper.destringify import destringify
+from ..services.embedRecordSupabase import embed_record_supabase_async
 
 load_dotenv(override=True)
 
@@ -80,4 +81,58 @@ async def embed_items_into_pinecone(request):
    
     return HttpResponse("Invalid request method. Please use POST to send a message.")
 
+@csrf_exempt
+async def embed_items_into_supabase(request):
+    if request.method=="POST":
+        try:
+            if request.content_type == 'application/json':
+                data_r = json.loads(request.body)
+            else:
+                data_r = request.POST.dict()
+
+            table_name = data_r.get("table_name")
+            embed_model = data_r.get("embed_model")
+            input_mode = data_r.get("input_mode")
+            chunk_config = data_r.get("chunk_config", None)
+            input_metadata = data_r.get("input_metadata", None)
+            config = load_json_file("defaults.json")
+            data = data_r.get("data", [])
+            include_image_embedding = data_r.get("include_image_embedding", False)
+     
+            # Destringify data, input_metadata and chunking configuration if they are strings, and convert them to dictionaries if necessary
+            data, input_metadata, chunk_config, include_image_embedding = destringify(data, input_metadata, chunk_config, include_image_embedding)
+
+            # Validate embed model and input mode
+            validate_embed_model(embed_model, input_mode, include_image_embedding)
+
+            if table_name not in config.get("supabase_tables", []):
+                raise ValueError(f"Table {table_name} is not supported. Supported tables are: {config.get('supabase_tables', [])}")
+            
+       
+            # Check if the index is compatible with the embedding model
+            check_embed_validity_supabase(table_name, embed_model)
+
+            res = await embed_record_supabase_async(
+                table_name=table_name,
+                embed_model=embed_model,
+                input_mode=input_mode,
+                chunk_metadata=chunk_config,
+                data=data,
+                config=config,
+                input_metadata=input_metadata,
+                files=request.FILES.dict() if hasattr(request, 'FILES') else None,
+                include_image_embedding=include_image_embedding 
+            )
+
+            return JsonResponse(res)
+          
+        except json.JSONDecodeError:
+            logger.error("Error decoding JSON")
+            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+        except Exception as e:
+            logger.error(f"Error occured in create_pinecone_index: {str(e)}")
+            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+
+   
+    return HttpResponse("Invalid request method. Please use POST to send a message.")
 

@@ -86,7 +86,8 @@ async def embed_texts(embed_model: str, data: List[str], config: dict, input_met
                 metadata["id"] = id
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
+                metadata["type_of_flow"] = "text"
    
                 metadata["source"] = 'sourceless_text'
 
@@ -104,7 +105,8 @@ async def embed_texts(embed_model: str, data: List[str], config: dict, input_met
                 metadata["id"] = id
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
+                metadata["type_of_flow"] = "text"
    
                 metadata["source"] = 'sourceless_text'
 
@@ -119,7 +121,8 @@ async def embed_texts(embed_model: str, data: List[str], config: dict, input_met
                 metadata = {"text": data[i], "embedding_model": embed_model, "id": str(uuid.uuid4()), "source": 'sourceless_text'}
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
+                metadata["type_of_flow"] = "text"
    
                 result.append({
                     "id": str(uuid.uuid4()),
@@ -214,8 +217,11 @@ async def embed_texts_json(embed_model: str, data: List[dict], config: dict):
             metadata["embedding_model"] = embed_model
             now = datetime.now()
             formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-            metadata["embbeded_when"] = formatted_string
+            metadata["embedded_when"] = formatted_string
             metadata["id"] = id
+            if "source" not in metadata:
+                metadata["source"] = 'sourceless_text'
+            metadata["type_of_flow"] = "text"
 
             result.append({
                 "id": f"{id}_{i}",

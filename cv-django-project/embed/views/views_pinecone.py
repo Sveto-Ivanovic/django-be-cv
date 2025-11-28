@@ -153,8 +153,21 @@ async def fetch_pinecone_index_data(request):
 
             pc = Pinecone(api_key=pinecone_api_key)
 
+            semaphore = asyncio.Semaphore(20)
+            
+
             index_async = pc.IndexAsyncio(host=index_description.index.host)
-            batch_results = await asyncio.gather(*[fetch_batch(index_async, batch, ind) for ind, batch in enumerate(batches)])
+
+            async def process_batch_with_concurrency_limit(batch, ind):
+                async with semaphore:
+                    return await fetch_batch(index_async, batch, ind)
+            
+            tasks = []
+            for ind, batch in enumerate(batches):
+                task = asyncio.create_task(process_batch_with_concurrency_limit(batch, ind))
+                tasks.append(task)
+
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
             records = process_batch_record_results(batch_results)
 
             await index_async.close()

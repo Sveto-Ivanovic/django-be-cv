@@ -1,11 +1,8 @@
 import json
-from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
 from .services.langgraphHandler import graph
 from .services.helperFunctions import load_json_file
-from .models import ChatHistory, MessageHistory
 from .loggerChatbot import logger
 
 @csrf_exempt

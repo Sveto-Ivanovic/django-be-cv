@@ -95,7 +95,8 @@ async def embed_images_files(embed_model: str, files, config: dict, input_metada
                 metadata["id"] = id
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
+                metadata["type_of_flow"] = "image"
 
                 result.append({
                     "id": f"{id}_{i}",
@@ -113,7 +114,8 @@ async def embed_images_files(embed_model: str, files, config: dict, input_metada
                 metadata["id"] = id
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
+                metadata["type_of_flow"] = "image"
 
                 result.append({
                     "id": f"{id}_{i}",
@@ -127,7 +129,8 @@ async def embed_images_files(embed_model: str, files, config: dict, input_metada
                 metadata = { "embedding_model": embed_model, "id": str(uuid.uuid4()), "source": files_list[i].name }
                 now = datetime.now()
                 formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-                metadata["embbeded_when"] = formatted_string
+                metadata["embedded_when"] = formatted_string
+                metadata["type_of_flow"] = "image"
 
                 result.append({
                     "id": f"{str(uuid.uuid4())}_{i}",

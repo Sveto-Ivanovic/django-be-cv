@@ -85,7 +85,8 @@ async def embed_texts_chunk(embed_model: str, data: List[str], config: dict, chu
             metadata = response_data[i].get("metadata", {})
             now = datetime.now()
             formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-            metadata["embbeded_when"] = formatted_string
+            metadata["embedded_when"] = formatted_string
+            metadata["type_of_flow"] = "text"
             
             results.append({
                 "id": id,
@@ -184,7 +185,8 @@ async def embed_texts_chunk_json(embed_model: str, data: List[str], config: dict
             metadata = response_data[i].get("metadata", {})
             now = datetime.now()
             formatted_string = now.strftime("%d:%m:%Y / %H:%M:%S")
-            metadata["embbeded_when"] = formatted_string
+            metadata["embedded_when"] = formatted_string
+            metadata["type_of_flow"] = "text"
             
             results.append({
                 "id": id,
@@ -267,7 +269,9 @@ def chunk_texts(data: List[str], chunk_size: int, overlap: int, embedding_model:
                 id = metadata.get("id", str(uuid.uuid4()))
                 metadata["id"] = id
                 metadata["embedding_model"] = embedding_model
-                metadata["source"] = 'sourceless_text'
+                if "source" not in metadata:
+                    metadata["source"] = 'sourceless_text'
+                metadata["type_of_flow"] = "text"
 
                 # If text is longer than chunk size, split it into chunks
                 if len(text) > chunk_size:
@@ -301,7 +305,8 @@ def chunk_texts(data: List[str], chunk_size: int, overlap: int, embedding_model:
                 metadata["text"] = text
                 metadata["id"] = metadata.get("id", str(uuid.uuid4()))
                 metadata["embedding_model"] = embedding_model
-                metadata["source"] = 'sourceless_text'
+                if "source" not in metadata:
+                    metadata["source"] = 'sourceless_text'
 
                 # If text is longer than chunk size, split it into chunks
                 if len(text) > chunk_size:

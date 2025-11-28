@@ -1,8 +1,6 @@
 from asgiref.sync import sync_to_async
-import logging
 import time
 from django.utils import timezone
-from langchain_core.messages import HumanMessage, AIMessage
 
 @sync_to_async
 def get_chat_item(model, conv_id):
