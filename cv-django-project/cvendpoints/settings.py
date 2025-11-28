@@ -37,6 +37,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'sendmessages.apps.SendmessagesConfig',
     'chatbot.apps.ChatbotConfig',
+    'embed.apps.EmbedConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

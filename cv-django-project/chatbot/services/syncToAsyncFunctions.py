@@ -1,8 +1,6 @@
 from asgiref.sync import sync_to_async
-import logging
 import time
 from django.utils import timezone
-from langchain_core.messages import HumanMessage, AIMessage
 
 @sync_to_async
 def get_chat_item(model, conv_id):
@@ -18,7 +16,8 @@ def create_chat_item(model, conv_id):
         id=conv_id,
         history=[],
         created_at=timezone.now(),
-        last_updated_at=timezone.now()
+        last_updated_at=timezone.now(),
+        source="chatbot"
     )
     time_taken = time.time() - start_time
     return time_taken, chat_item

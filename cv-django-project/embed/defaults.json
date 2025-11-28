@@ -1,0 +1,13 @@
+{
+    "char_limits": {
+        "gemini-embedding-001": 2048,
+        "jina-embeddings-v4": 8192,
+        "embed-v4.0": 4096
+    },
+    "vector_dimensions": {
+        "gemini-embedding-001": 3072,
+        "jina-embeddings-v4": 2048,
+        "embed-v4.0": 1536
+    },
+    "supabase_tables":["vector_search_1536", "vector_search_2048", "vector_search_3072"]
+}

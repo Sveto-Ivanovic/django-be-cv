@@ -8,6 +8,7 @@ class ChatHistory(models.Model):
     history = JSONField()
     created_at = models.DateTimeField(auto_now=True)
     last_updated_at = models.DateTimeField(auto_now=True)
+    source = models.CharField(max_length=100, blank=True, null=True)
 
     
     def __str__(self):
