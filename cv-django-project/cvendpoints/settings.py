@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'sendmessages.apps.SendmessagesConfig',
     'chatbot.apps.ChatbotConfig',
     'embed.apps.EmbedConfig',
+    'usermanagement.apps.UsermanagementConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'usermanagement.middleware.authMiddleware.auth_middleware',
 ]
 
 ROOT_URLCONF = 'cvendpoints.urls'

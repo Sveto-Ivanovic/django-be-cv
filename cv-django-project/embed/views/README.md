@@ -2,6 +2,8 @@
 
 This document outlines how to use the universal embedding endpoints to process and upsert text, images, and documents into [Pinecone](https://www.pinecone.io/) vector indexes or Supabase vector tables.
 
+### Note: user_id now needs to be provided in the request body for both Pinecone and Supabase embedding endpoints. This allows the system to retrieve the appropriate API keys for the user making the request.
+
 ---
 
 ## Available Endpoints

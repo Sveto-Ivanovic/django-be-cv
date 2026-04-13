@@ -22,18 +22,42 @@ A messaging system is integrated into the backend, allowing for communication fu
 
 This project is built using the following key technologies:
 
-*   **Django 5.2.3**: A high-level Python web framework that encourages rapid development and clean, pragmatic design.
-*   **PostgreSQL**: A powerful, open-source object-relational database system used for data storage.
-*   **psycopg2-binary**: A PostgreSQL adapter for Python.
-*   **python-dotenv**: For loading environment variables from a `.env` file.
-*   **LangChain Ecosystem**: 
-    *   **langgraph**: For building robust and stateful multi-actor applications with LLMs.
-    *   **langsmith**: For debugging, testing, evaluating, and monitoring LLM applications.
-    *   **langchain-groq**: Integration with Groq for fast LLM inference.
-    *   **langchain-google-genai**: Integration with Google's Generative AI models.
-    *   **langchain_mistralai**: Integration with Mistral AI models.
-*   **ipython**: An interactive computing environment.
-*   **colorama**: For adding colored terminal text.
+## Dependencies
+
+### Core Framework & Database
+- **Django 5.2.3**: A high-level Python web framework that encourages rapid development and clean, pragmatic design.
+- **PostgreSQL**: A powerful, open-source object-relational database system used for data storage.
+- **psycopg2-binary**: A PostgreSQL adapter for Python.
+- **python-dotenv**: For loading environment variables from a `.env` file.
+
+### LangChain Ecosystem
+- **langgraph**: For building robust and stateful multi-actor applications with LLMs.
+- **langsmith**: For debugging, testing, evaluating, and monitoring LLM applications.
+- **langchain-groq**: Integration with Groq for fast LLM inference.
+- **langchain-google-genai**: Integration with Google's Generative AI models.
+- **langchain_mistralai**: Integration with Mistral AI models.
+
+### Vector Search & AI
+- **pgvector 0.4.1**: PostgreSQL extension for vector similarity search, enabling storage and querying of vector embeddings.
+- **cohere 5.16.1**: SDK for Cohere's NLP models, supporting embeddings, reranking, and text generation.
+- **pinecone[asyncio] 7.3.0**: A managed vector database client with async support for scalable similarity search.
+
+### Document & Image Processing
+- **Pillow 11.3.0**: A Python imaging library for opening, manipulating, and saving image files.
+- **pdfplumber 0.11.7**: For extracting text, tables, and metadata from PDF files with fine-grained control.
+- **pymupdf 1.26.3**: A high-performance PDF and document processing library (also known as fitz).
+
+### Authentication & Security
+- **argon2-cffi 25.1.0**: A secure password hashing library implementing the Argon2 algorithm.
+- **pyjwt 2.10.1**: For encoding and decoding JSON Web Tokens (JWT) in Python.
+- **django-ratelimit 4.1.0**: A Django decorator/middleware for rate limiting views to prevent abuse.
+
+### Backend & Database Services
+- **supabase 2.24.0**: Python client for Supabase, providing access to its database, auth, storage, and realtime features.
+
+### Utilities
+- **ipython**: An interactive computing environment.
+- **colorama 0.4.6**: For adding colored terminal text.
 
 
 
@@ -73,10 +97,10 @@ To get this project up and running on your local machine, follow these steps:
     DB_PASSWORD=your_db_password
     DB_PORT=your_db_port
 
-    # Mistral and gemini api keys
-    MISTRAL_API_KEY=your_mistral_api_key_here
-    GEMINI_API_KEY=your_gemini_api_key_here
-    GROQ_API_KEY=your_groqu_api_key_here
+    SUPABASE_URL=
+    SUPABASE_KEY=
+    SUPABASE_REDIRECT_URL=
+
     ```
 
 5.  **Run database migrations:**
@@ -112,6 +136,10 @@ django-be-cv/
 │   ├── urls.py              # Main URL routing
 │   └── ...
 ├── sendmessages/            # Django app for messaging functionalities
+│   └── ...
+├── usermanagment/           # Django app for managing uset authentication 
+│   └── ...
+├── embed/                   # Django app for embeding text images and pdfs into supabase or pinecone 
 │   └── ...
 ├── manage.py                # Django's command-line utility
 ├── requirements.txt         # Python dependencies

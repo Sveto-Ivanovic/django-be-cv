@@ -22,5 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("messages/", include("sendmessages.urls")),
     path("chatbot/", include("chatbot.urls")),
-    path("embed/", include("embed.urls"))
+    path("embed/", include("embed.urls")),
+    path("user/", include("usermanagement.urls")),
 ]

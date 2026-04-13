@@ -9,7 +9,7 @@ import requests
 from datetime import datetime
 
 
-async def embed_images(embed_model: str, data: List[dict], config: dict, input_metadata: List[dict] = None):
+async def embed_images(embed_model: str, data: List[dict], config: dict, input_metadata: List[dict] = None, api_keys: dict = None):
     """
     Function to embed images into Pinecone index with batching, retries, and character limits.
 
@@ -17,6 +17,7 @@ async def embed_images(embed_model: str, data: List[dict], config: dict, input_m
     :param data: List of dict records to embed, each containing a 'url' key with the image URL and 'metadata' key
     :param config: Configuration dictionary
     :param input_metadata: Optional metadata for each image, can be empty, same length as data or one item shared for all images
+    :param api_keys: API keys for authentication
     :return: Response list of objects compatible with Pinecone index
     """
     try:
@@ -58,7 +59,7 @@ async def embed_images(embed_model: str, data: List[dict], config: dict, input_m
         async def process_batch_with_concurrency_limit(batch):
             async with semaphore:
                 return await process_batch_with_retry(
-                    batch, embed_model, max_retries=3, retry_delay=1
+                    batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                 )
 
         # Create all batch tasks concurrently
@@ -156,13 +157,14 @@ async def embed_images(embed_model: str, data: List[dict], config: dict, input_m
         logger.error(f"Error embedding images into Pinecone: {str(e)}")
         raise
 
-async def embed_images_json(embed_model: str, data: List[dict], config: dict):
+async def embed_images_json(embed_model: str, data: List[dict], config: dict, api_keys: dict = None):
     """
     Function to embed images into Pinecone index with batching, retries, and character limits.
 
     :param embed_model: Embedding model to use
     :param data: List of image urls records to embed, each containing a 'url' key with the image URL and 'metadata' key
     :param config: Configuration dictionary
+    :param api_keys: API keys for authentication
     :return: Response list of objects compatible with Pinecone index
     """
     try:
@@ -204,7 +206,7 @@ async def embed_images_json(embed_model: str, data: List[dict], config: dict):
         async def process_batch_with_concurrency_limit(batch):
             async with semaphore:
                 return await process_batch_with_retry(
-                    batch, embed_model, max_retries=3, retry_delay=1
+                    batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                 )
 
         # Create all batch tasks concurrently
@@ -266,7 +268,8 @@ async def process_batch_with_retry(
     batch: List[str], 
     model: str, 
     max_retries: int = 3, 
-    retry_delay: int = 1
+    retry_delay: int = 1,
+    api_keys: dict = None
 ):
     """
     Process a batch with retry logic
@@ -275,15 +278,16 @@ async def process_batch_with_retry(
     :param model: Embedding model to use
     :param max_retries: Maximum number of retries for failed batches
     :param retry_delay: Delay between retries in seconds
+    :param api_keys: API keys for authentication
     :return: List of embeddings for the batch
     """
     for attempt in range(max_retries):
         try:
             if model == "jina-embeddings-v4":
-                _, embeds = await get_image_embeddings_jina_async(batch, model)
+                _, embeds = await get_image_embeddings_jina_async(batch, model, api_keys.get("jina_api_key"))
                 return embeds
             elif model == "embed-v4.0":
-                return await async_fetch_image_embeddings_with_cohere(batch, model)
+                return await async_fetch_image_embeddings_with_cohere(batch, model, api_keys.get("cohere_api_key"))
             else:
                 raise ValueError(f"Unsupported model: {model}")
             

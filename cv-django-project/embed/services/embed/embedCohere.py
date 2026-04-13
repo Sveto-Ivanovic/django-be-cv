@@ -6,11 +6,7 @@ import asyncio
 
 load_dotenv()
 
-cohere_api_key = os.getenv("COHERE_API_KEY")
-os.environ["COHERE_API_KEY"] = cohere_api_key
-
-
-def fetch_embedding_with_cohere(textual_query: str, model_name: str):
+def fetch_embedding_with_cohere(textual_query: str, model_name: str, cohere_api_key: str):
     """    
     Fetches embedding with Cohere.
     
@@ -18,7 +14,7 @@ def fetch_embedding_with_cohere(textual_query: str, model_name: str):
     :param model_name: Name of the Cohere embedding model
     :return: Embedding vector"""
     try:
-        co = cohere.Client()
+        co = cohere.Client(api_key=cohere)
         response = co.embed(
             model=model_name,
             texts=[textual_query]
@@ -30,7 +26,7 @@ def fetch_embedding_with_cohere(textual_query: str, model_name: str):
         raise ValueError(f"Error in fetching Cohere embedding model: {str(e)}")
     
 
-def fetch_embeddings_with_cohere(textual_queries: list, model_name: str):
+def fetch_embeddings_with_cohere(textual_queries: list, model_name: str, cohere_api_key: str):
     """
     Fetches embeddings with Cohere.
     
@@ -38,7 +34,7 @@ def fetch_embeddings_with_cohere(textual_queries: list, model_name: str):
     :param model_name: Name of the Cohere embedding model
     :return: List of embedding vectors"""
     try:
-        co = cohere.Client()
+        co = cohere.Client(api_key=cohere_api_key)
         response = co.embed(
             model=model_name,
             texts=textual_queries
@@ -50,9 +46,9 @@ def fetch_embeddings_with_cohere(textual_queries: list, model_name: str):
         raise ValueError(f"Error in fetching Cohere embedding model: {str(e)}")
 
 
-def fetch_image_embedding_with_cohere(image_base64: str, model_name: str):
+def fetch_image_embedding_with_cohere(image_base64: str, model_name: str, cohere_api_key: str):
     try:
-        co = cohere.Client()
+        co = cohere.Client(api_key=cohere_api_key)
 
         response = co.embed(
             model=model_name,
@@ -66,7 +62,7 @@ def fetch_image_embedding_with_cohere(image_base64: str, model_name: str):
         logger.error(f"Error fetching Cohere image embedding model: {str(e)}")
         raise ValueError(f"Error in fetching Cohere image embedding model: {str(e)}")
     
-def fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str):
+def fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str, cohere_api_key: str):
     """Fetches image embeddings with Cohere.
 
     :param image_base64s: List of base64 encoded image strings
@@ -74,7 +70,7 @@ def fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str):
     :return: List of image embeddings
     """
     try:
-        co = cohere.Client()
+        co = cohere.Client(api_key=cohere_api_key)
   
         response = co.embed(
             model=model_name,
@@ -89,7 +85,7 @@ def fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str):
         raise ValueError(f"Error in fetching Cohere image embedding model: {str(e)}")
     
 
-async def async_fetch_embedding_with_cohere(textual_query: str, model_name: str):
+async def async_fetch_embedding_with_cohere(textual_query: str, model_name: str, cohere_api_key: str):
     """Asynchronously fetches embedding with Cohere.
 
     :param textual_query: Textual query to embed
@@ -97,7 +93,7 @@ async def async_fetch_embedding_with_cohere(textual_query: str, model_name: str)
     :return: Embedding vector
     """
     try:
-        co = cohere.AsyncClient()
+        co = cohere.AsyncClient(api_key=cohere_api_key)
         response = await co.embed(
             model=model_name,
             texts=[textual_query]
@@ -110,7 +106,7 @@ async def async_fetch_embedding_with_cohere(textual_query: str, model_name: str)
     
 
 
-async def async_fetch_embeddings_with_cohere(textual_queries: list, model_name: str):
+async def async_fetch_embeddings_with_cohere(textual_queries: list, model_name: str, cohere_api_key: str):
     """Asynchronously fetches embeddings with Cohere.
     
     :param textual_queries: List of text queries to embed
@@ -118,7 +114,7 @@ async def async_fetch_embeddings_with_cohere(textual_queries: list, model_name: 
     :return: List of embedding vectors
     """
     try:
-        co = cohere.AsyncClient()
+        co = cohere.AsyncClient(api_key=cohere_api_key)
         response = await co.embed(
             model=model_name,
             texts=textual_queries
@@ -132,7 +128,7 @@ async def async_fetch_embeddings_with_cohere(textual_queries: list, model_name: 
     
 
 
-async def async_fetch_image_embedding_with_cohere(image_base64: str, model_name: str):
+async def async_fetch_image_embedding_with_cohere(image_base64: str, model_name: str, cohere_api_key: str):
     """Asynchronously fetches image embedding with Cohere.
     
     :param image_base64: Base64 encoded image string
@@ -140,7 +136,7 @@ async def async_fetch_image_embedding_with_cohere(image_base64: str, model_name:
     :return: Image embedding vector
     """
     try:
-        co = cohere.AsyncClient()
+        co = cohere.AsyncClient(api_key=cohere_api_key) 
 
         response = await co.embed(
             model=model_name,
@@ -154,7 +150,7 @@ async def async_fetch_image_embedding_with_cohere(image_base64: str, model_name:
         logger.error(f"Error fetching Cohere image embedding model: {str(e)}")
         raise ValueError(f"Error in fetching Cohere image embedding model: {str(e)}")
 
-async def async_fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str):
+async def async_fetch_image_embeddings_with_cohere(image_base64s: list, model_name: str, cohere_api_key: str):
     """
     Asynchronously fetches image embeddings with Cohere.
     
@@ -163,7 +159,7 @@ async def async_fetch_image_embeddings_with_cohere(image_base64s: list, model_na
     :return: List of image embeddings
     """
     try:
-        co = cohere.AsyncClient()
+        co = cohere.AsyncClient(api_key=cohere_api_key) 
 
         response = await co.embed(
             model=model_name,

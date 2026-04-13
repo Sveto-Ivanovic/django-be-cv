@@ -15,7 +15,8 @@ async def process_batch_with_retry_images(
     batch: List[str], 
     model: str, 
     max_retries: int = 3, 
-    retry_delay: int = 1
+    retry_delay: int = 1,
+    api_keys: dict | None = None
 ):
     """
     Process a batch with retry logic
@@ -24,15 +25,16 @@ async def process_batch_with_retry_images(
     :param model: Embedding model to use
     :param max_retries: Maximum number of retries for failed batches
     :param retry_delay: Delay between retries in seconds
+    :param api_keys: API keys for authentication
     :return: List of embeddings for the batch
     """
     for attempt in range(max_retries):
         try:
             if model == "jina-embeddings-v4":
-                _, embeds = await get_image_embeddings_jina_async(batch, model)
+                _, embeds = await get_image_embeddings_jina_async(batch, model, api_keys.get("jina_api_key"))
                 return embeds
             elif model == "embed-v4.0":
-                return await async_fetch_image_embeddings_with_cohere(batch, model)
+                return await async_fetch_image_embeddings_with_cohere(batch, model, api_keys.get("cohere_api_key"))
             else:
                 raise ValueError(f"Unsupported model: {model}")
             
@@ -53,7 +55,8 @@ async def process_batch_with_retry_texts(
     batch: List[str], 
     model: str, 
     max_retries: int = 3, 
-    retry_delay: int = 1
+    retry_delay: int = 1,
+    api_keys: dict | None = None
 ):
     """Process a batch with retry logic
     
@@ -61,17 +64,18 @@ async def process_batch_with_retry_texts(
     :param model: Embedding model to use
     :param max_retries: Maximum number of retries for failed batches
     :param retry_delay: Delay between retries in seconds
+    :param api_keys: API keys for authentication
     :return: List of embeddings for the batch
     """
     for attempt in range(max_retries):
         try:
             if model == "gemini-embedding-001":
-                return await async_fetch_embeddings_with_gemini(batch, model)
+                return await async_fetch_embeddings_with_gemini(batch, model, api_keys.get("gemini_api_key"))
             elif model == "jina-embeddings-v4":
-                _, embeds = await get_text_embeddings_jina_async(batch, model)
+                _, embeds = await get_text_embeddings_jina_async(batch, model, api_keys.get("jina_api_key"))
                 return embeds
             elif model == "embed-v4.0":
-                return await async_fetch_embeddings_with_cohere(batch, model)
+                return await async_fetch_embeddings_with_cohere(batch, model, api_keys.get("cohere_api_key"))
             else:
                 raise ValueError(f"Unsupported model: {model}")
         except Exception as e:
@@ -87,7 +91,7 @@ async def process_batch_with_retry_texts(
                 raise RuntimeError(f"Embedding failed after {max_retries} retries") from e   
             
 
-async def embed_pdf_files(embed_model: str, files, chunk_metadata: dict | None, config: dict, input_metadata: List[dict] = None, include_image_embedding: bool = False):
+async def embed_pdf_files(embed_model: str, files, chunk_metadata: dict | None, config: dict, input_metadata: List[dict] = None, include_image_embedding: bool = False, api_keys: dict | None = None):
     """
     Function to embed images into Pinecone index with batching, retries, and character limits.
 
@@ -97,6 +101,7 @@ async def embed_pdf_files(embed_model: str, files, chunk_metadata: dict | None, 
     :param input_metadata: Optional metadata for each image, can be empty, same length as data or one item shared for all images
     :param chunk_metadata: Metadata for chunking, if applicable
     :param include_image_embedding: Boolean indicating if image embedding should be included in file input mode
+    :param api_keys: API keys for authentication
     :return: Response list of objects compatible with Pinecone index
     """
     try:
@@ -148,10 +153,10 @@ async def embed_pdf_files(embed_model: str, files, chunk_metadata: dict | None, 
         image_embeddings=[]
         text_embeddings=[]
         if results_images_total and include_image_embedding:
-            results_image_embeddings = await get_image_text_embeddings(embed_model, results_images_total, config, mode="image")
+            results_image_embeddings = await get_image_text_embeddings(embed_model, results_images_total, config, mode="image", api_keys=api_keys)
             image_embeddings.extend(results_image_embeddings)
         if results_texts_total:
-            results_text_embeddings = await get_image_text_embeddings(embed_model, results_texts_total, config, mode="text")
+            results_text_embeddings = await get_image_text_embeddings(embed_model, results_texts_total, config, mode="text", api_keys=api_keys)
             text_embeddings.extend(results_text_embeddings)
 
         result=[]
@@ -164,13 +169,14 @@ async def embed_pdf_files(embed_model: str, files, chunk_metadata: dict | None, 
         logger.error(f"Error embedding pdf data into Pinecone: {str(e)}")
         raise
 
-async def get_image_text_embeddings(embed_model: str, image_text_data: List[dict], config: dict, mode: Literal["text", "image"]):
+async def get_image_text_embeddings(embed_model: str, image_text_data: List[dict], config: dict, mode: Literal["text", "image"], api_keys: dict | None = None):
         """Function to embed images or texts into Pinecone index with batching, retries, and character limits.
         
         param: embed_model: Embedding model to use
         param: image_text_data: List of image or text data dictionaries, each containing 'base64_str' or 'text' and optional metadata
         param: config: Configuration dictionary
         param: mode: Mode of input data, values can be "text" or "image"
+        param: api_keys: API keys for authentication
         return: Response list of objects compatible with Pinecone index
         """
         try:
@@ -194,13 +200,13 @@ async def get_image_text_embeddings(embed_model: str, image_text_data: List[dict
             async def process_batch_with_concurrency_limit_images(batch):
                 async with semaphore:
                     return await process_batch_with_retry_images(
-                        batch, embed_model, max_retries=3, retry_delay=1
+                        batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                     )
                 
             async def process_batch_with_concurrency_limit_texts(batch):
                 async with semaphore:
                     return await process_batch_with_retry_texts(
-                        batch, embed_model, max_retries=3, retry_delay=1
+                        batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                     )
 
             # Create all batch tasks concurrently

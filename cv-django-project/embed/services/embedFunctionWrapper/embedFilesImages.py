@@ -9,7 +9,7 @@ import requests
 from datetime import datetime
 
 
-async def embed_images_files(embed_model: str, files, config: dict, input_metadata: List[dict] = None):
+async def embed_images_files(embed_model: str, files, config: dict, input_metadata: List[dict] = None, api_keys: dict | None = None):
     """
     Function to embed images into Pinecone index with batching, retries, and character limits.
 
@@ -17,6 +17,7 @@ async def embed_images_files(embed_model: str, files, config: dict, input_metada
     :param files: List of files to embed (images)
     :param config: Configuration dictionary
     :param input_metadata: Optional metadata for each image, can be empty, same length as data or one item shared for all images
+    :param api_keys: API keys for authentication
     :return: Response list of objects compatible with Pinecone index
     """
     try:
@@ -50,7 +51,7 @@ async def embed_images_files(embed_model: str, files, config: dict, input_metada
         async def process_batch_with_concurrency_limit(batch):
             async with semaphore:
                 return await process_batch_with_retry(
-                    batch, embed_model, max_retries=3, retry_delay=1
+                    batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                 )
 
         # Create all batch tasks concurrently
@@ -152,7 +153,8 @@ async def process_batch_with_retry(
     batch: List[str], 
     model: str, 
     max_retries: int = 3, 
-    retry_delay: int = 1
+    retry_delay: int = 1,
+    api_keys: dict | None = None
 ):
     """
     Process a batch with retry logic
@@ -166,10 +168,10 @@ async def process_batch_with_retry(
     for attempt in range(max_retries):
         try:
             if model == "jina-embeddings-v4":
-                _, embeds = await get_image_embeddings_jina_async(batch, model)
+                _, embeds = await get_image_embeddings_jina_async(batch, model, api_keys=api_keys)
                 return embeds
             elif model == "embed-v4.0":
-                return await async_fetch_image_embeddings_with_cohere(batch, model)
+                return await async_fetch_image_embeddings_with_cohere(batch, model, api_keys=api_keys)
             else:
                 raise ValueError(f"Unsupported model: {model}")
             

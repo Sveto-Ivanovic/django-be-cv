@@ -1,0 +1,37 @@
+done testing usermanagment endpoints
+
+
+next: test embedding endpoints with user auth
+    go through logic one more time
+
+    make endpoints for 
+
+    adding user data,
+    modifying user data,
+    deleting user data
+
+    read up csrf
+    pull request
+
+    ***************************************************************************
+    possibly make storage type supabase table for pinecone vectors (no vectors just data so we fetch via table and not pinecone)
+
+    ***************************************************************************
+
+    make search engine endpoint that searches the the vectors and returns K best matches
+
+    ***************************************************************************
+
+    make an endpoint that searches via bm25 algorithm 
+
+    ***************************************************************************
+
+    hybrid aporach
+
+    ***************************************************************************
+    then modify the chatbot
+    
+    ***************************************************************************
+
+    
+
