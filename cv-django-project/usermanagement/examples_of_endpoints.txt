@@ -1,0 +1,99 @@
+svetoivanovic588@gmail.com
+
+
+
+register user|
+
+request body:
+{
+"username":"svetko555",
+"email":"svetoiv44@gmail.com",
+"password":"sv1235",
+"confirmed_password":"sv1235",
+"date_of_birth" : "2000-04-06",
+"name": "Sveto",
+"surname": "Ivanovic"
+}
+
+url: http://localhost:8000/user/register_user/
+
+response:
+{
+    "status": "success",
+    "user_id": "3eb154df-41f2-4f8d-80f5-3ca7db4da634",
+    "auth_id": "82d6c417-6c86-4636-91f8-4793b09dca19",
+    "username": "svetko555"
+}
+
+
+**************************************************************************************
+
+sing in user|
+
+request body:
+{
+"email":"svetoiv44@gmail.com",
+"password":"sv1235"
+}
+
+url: http://localhost:8000/user/login_user/
+
+
+response:
+{
+    "status": "success",
+    "access_token": "eyJhbGciOiJIUzI1NiIsImtpZCI6InM3UU9DVC8relBHY3NnMlIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2dlamZycG1wcHd5dnN4bWh5YWpiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiO
+    ....
+    IjoiMzBhNzc2MGEtMDQ4NS00ZTRmLWIyNjMtNzM0OTdiOWI4MjYwIiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.KUxcfcaFkBNTndGOyBWHYZx2BaZT9kLqHQN2A_pA63c",
+    "refresh_token": "hmtb6dcwcogn",
+    "user_id": "b69f06a6-2dd7-43f6-80c0-2c580deef6b0",
+    "auth_id": "5e881933-d088-4ac8-9744-3b52db9df36d",
+    "username": "svetko555"
+}
+
+**************************************************************************************
+
+refresh token|
+
+request body:
+{
+"refresh_token":"hmtb6dcwcogn",
+"access_token":"eyJhbGciOiJIUzI1NiIsImtpZCI6InM3UU9DVC8relBHY3NnMlIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2dlamZycG1wcHd5dnN4bWh5YWpiLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIzMGExODg0Mi0wNDg1LTRlNGYtYjI2My03MzQ5N2I5YjgyNjAiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.KUxcfcaFkBNTndGOyBWHYZx2BaZT9kLqHQN2A_pA63c"
+}
+
+url: http://localhost:8000/user/refresh_token/
+
+
+response:
+
+{
+    "status": "success",
+    "access_token": "eyJhbGciOiJIUzI1NiIsImtpZCI6InM3UU9DVC8relBHY3NnMlIiLCJ0eXAiOiJKV1QifQ.
+    ...
+    YwMTM1M31dLCJzZXNzaW9uX2lkIjoiNTRlYzBiMGEtZWVjNC00OTc3LWJhY2QtNzM3ODE5NWFlMjJhIiwiaXNfYW5vbnltb3VzIjpmYWxzZX0._DO7VPRuA4usM6dTjPwoCXvRm08JPsDT63Ag86HMJuo",
+    "refresh_token": "zpiqjffzeae5",
+    "user_id": "b69f06a6-2dd7-43f6-80c0-2c580deef6b0",
+    "auth_id": "5e881933-d088-4ac8-9744-3b52db9df36d",
+    "username": "svetko555"
+}
+
+***************************************************************************************
+
+sign out user|
+
+request body:
+{
+
+"access_token": "eyJhbGciOiJIUzI1NiIsImtpZCI6InM3UU9DVC8relBHY3NnMlIiLCJ0eXAiOiJKV1QifQ.
+...
+mYWxzZX0.4ao3eq6GaQmzSMISKp2l9B4Zu7b6RxuaME5ltS1hnUA",
+    "refresh_token": "huiupr4waazy",
+    "auth_id": "5e881933-d088-4ac8-9744-3b52db9df36d"
+}
+
+url: http://localhost:8000/user/logout_user/
+
+{
+    "status": "success",
+    "message": "User signed out successfully"
+}

@@ -7,7 +7,7 @@ import asyncio
 from typing import List
 from datetime import datetime
 
-async def embed_texts(embed_model: str, data: List[str], config: dict, input_metadata: List[dict] = []):
+async def embed_texts(embed_model: str, data: List[str], config: dict, input_metadata: List[dict] = [], api_keys: dict | None = None):
     """
     Function to embed texts into Pinecone index with batching, retries, and character limits.
 
@@ -15,6 +15,7 @@ async def embed_texts(embed_model: str, data: List[str], config: dict, input_met
     :param data: List of text records to embed
     :param config: Configuration dictionary
     :param input_metadata: Metadata for the input texts
+    :param api_keys: API keys for external services
     :return: Response list of objects compatible with Pinecone index
     """
     try:
@@ -45,7 +46,7 @@ async def embed_texts(embed_model: str, data: List[str], config: dict, input_met
         async def process_batch_with_concurrency_limit(batch):
             async with semaphore:
                 return await process_batch_with_retry(
-                    batch, embed_model, max_retries=3, retry_delay=1
+                    batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                 )
 
         # Create all batch tasks concurrently
@@ -139,13 +140,14 @@ async def embed_texts(embed_model: str, data: List[str], config: dict, input_met
         raise
     
 
-async def embed_texts_json(embed_model: str, data: List[dict], config: dict):
+async def embed_texts_json(embed_model: str, data: List[dict], config: dict, api_keys: dict | None = None):
     """
     Function to embed texts into Pinecone index with batching, retries, and character limits.
 
     :param embed_model: Embedding model to use
     :param data: List of text records to embed, each containing a 'text' key and metadata key
     :param config: Configuration dictionary
+    :param api_keys: API keys for external services
     :return: Response list of objects compatible with Pinecone index
     """
     try:
@@ -179,7 +181,7 @@ async def embed_texts_json(embed_model: str, data: List[dict], config: dict):
         async def process_batch_with_concurrency_limit(batch):
             async with semaphore:
                 return await process_batch_with_retry(
-                    batch, embed_model, max_retries=3, retry_delay=1
+                    batch, embed_model, max_retries=3, retry_delay=1, api_keys=api_keys
                 )
 
         # Create all batch tasks concurrently
@@ -240,18 +242,19 @@ async def process_batch_with_retry(
     batch: List[str], 
     model: str, 
     max_retries: int = 3, 
-    retry_delay: int = 1
+    retry_delay: int = 1,
+    api_keys: dict | None = None
 ):
     """Process a batch with retry logic"""
     for attempt in range(max_retries):
         try:
             if model == "gemini-embedding-001":
-                return await async_fetch_embeddings_with_gemini(batch, model)
+                return await async_fetch_embeddings_with_gemini(batch, model, gemini_api_key=api_keys.get("gemini_api_key") if api_keys else None)
             elif model == "jina-embeddings-v4":
-                _, embeds = await get_text_embeddings_jina_async(batch, model)
+                _, embeds = await get_text_embeddings_jina_async(batch, model, jina_api_key=api_keys.get("jina_api_key") if api_keys else None)
                 return embeds
             elif model == "embed-v4.0":
-                return await async_fetch_embeddings_with_cohere(batch, model)
+                return await async_fetch_embeddings_with_cohere(batch, model, cohere_api_key=api_keys.get("cohere_api_key") if api_keys else None)
             else:
                 raise ValueError(f"Unsupported model: {model}")
         except Exception as e:

@@ -15,7 +15,8 @@ async def embed_record_pinecone_async(index,
                                       config: dict, 
                                       files: list | None = None,
                                       input_metadata: list | None = [],
-                                      include_image_embedding: bool = False):
+                                      include_image_embedding: bool = False,
+                                      api_keys: dict | None = None):
                                       
     """
     Function to embed records into Pinecone.
@@ -40,7 +41,7 @@ async def embed_record_pinecone_async(index,
             
             # Input data is a list of strings
             if isinstance(data[0], str) and len(data) > 0:
-                embedded_data = await embed_texts(embed_model, data, config, input_metadata)
+                embedded_data = await embed_texts(embed_model, data, config, input_metadata, api_keys)
                 logger.info(f"Embedding {len(embedded_data)} records into Pinecone index  with model {embed_model}.")
                 embedding_of_first_record = embedded_data[0].get("values", [])
                 logger.info(f"Length of embeddings: {len(embedding_of_first_record)}")
@@ -51,7 +52,7 @@ async def embed_record_pinecone_async(index,
             # Input data is a list of dictionaries
             if isinstance(data[0], dict) and len(data) > 0:
                 logger.info(f"Embedding {len(data)} records (json) into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_texts_json(embed_model, data, config)
+                embedded_data = await embed_texts_json(embed_model, data, config, api_keys)
                 logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Pinecone index.")
@@ -65,7 +66,7 @@ async def embed_record_pinecone_async(index,
             # Input data is a list of strings
             if isinstance(data[0], str) and len(data) > 0:
                 logger.info(f"Embedding {len(data)} records (chunked) into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_texts_chunk(embed_model, data, config, chunk_metadata, input_metadata)
+                embedded_data = await embed_texts_chunk(embed_model, data, config, chunk_metadata, input_metadata, api_keys)
                 logger.info(f"Length of embeddings (chunked): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (chunked) {len(embedded_data)} records into Pinecone index.")
@@ -74,7 +75,7 @@ async def embed_record_pinecone_async(index,
             # Input data is a list of dictionaries
             elif isinstance(data[0], dict) and len(data) > 0:
                 logger.info(f"Embedding {len(data)} records (chunked json) into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_texts_chunk_json(embed_model, data, config, chunk_metadata)
+                embedded_data = await embed_texts_chunk_json(embed_model, data, config, chunk_metadata, api_keys)
                 logger.info(f"Length of embeddings (chunked json): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (chunked json) {len(embedded_data)} records into Pinecone index.")
@@ -104,7 +105,7 @@ async def embed_record_pinecone_async(index,
                 # length of input_metadata is same as length of data, length of input_metadata is 0, or length of input_metadata is 1 (here metadata is shared for all records) 
                 if indicator: 
                     logger.info(f"Embedding {len(data)} records (json) into Pinecone index with model {embed_model}.")
-                    embedded_data = await embed_images_json(embed_model, data, config)
+                    embedded_data = await embed_images_json(embed_model, data, config, api_keys)
                     logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
                     index.upsert(embedded_data)
                     logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Pinecone index.")
@@ -112,7 +113,7 @@ async def embed_record_pinecone_async(index,
                 
                 else:
                     logger.info(f"Embedding {len(data)} records (input_metadata) into Pinecone index with model {embed_model}.")
-                    embedded_data = await embed_images(embed_model, data, config, input_metadata)
+                    embedded_data = await embed_images(embed_model, data, config, input_metadata, api_keys)
                     logger.info(f"Length of embeddings (input_metadata): {len(embedded_data[0].get('values', []))}")
                     index.upsert(embedded_data)
                     logger.info(f"Successfully embedded (input_metadata) {len(embedded_data)} records into Pinecone index.")
@@ -123,7 +124,7 @@ async def embed_record_pinecone_async(index,
                 
                 # Embed based of files
                 logger.info(f"Embedding {len(files)} files into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_images_files(embed_model, files, config, input_metadata)
+                embedded_data = await embed_images_files(embed_model, files, config, input_metadata, api_keys)
                 logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Pinecone index.")
@@ -136,7 +137,7 @@ async def embed_record_pinecone_async(index,
         elif input_mode == "file":
             # Embed based of files
             logger.info(f"Embedding {len(files)} files into Pinecone index with model {embed_model}.")
-            embedded_data = await embed_pdf_files(embed_model, files, chunk_metadata, config, input_metadata, include_image_embedding)
+            embedded_data = await embed_pdf_files(embed_model, files, chunk_metadata, config, input_metadata, include_image_embedding, api_keys)
             logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
             index.upsert(embedded_data)
             logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Pinecone index.")

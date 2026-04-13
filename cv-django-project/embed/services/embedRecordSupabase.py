@@ -17,7 +17,8 @@ async def embed_record_supabase_async(table_name: str,
                                       config: dict, 
                                       files: list | None = None,
                                       input_metadata: list | None = [],
-                                      include_image_embedding: bool = False):
+                                      include_image_embedding: bool = False,
+                                      api_keys: dict | None = None):
                                       
     """
     Function to embed records into Pinecone.
@@ -31,6 +32,7 @@ async def embed_record_supabase_async(table_name: str,
     :param input_metadata: Metadata for each record, can be empty, same length as data or one item shared for all records
     :param files: List of files to embed, if applicable
     :param include_image_embedding: Boolean indicating if image embedding should be included in file input mode
+    :param api_keys: API keys for external services, if applicable
     :return: Response indicating success or failure
     """
     try:
@@ -51,7 +53,7 @@ async def embed_record_supabase_async(table_name: str,
             
             # Input data is a list of strings
             if isinstance(data[0], str) and len(data) > 0:
-                embedded_data = await embed_texts(embed_model, data, config, input_metadata)
+                embedded_data = await embed_texts(embed_model, data, config, input_metadata, api_keys)
                 logger.info(f"Embedding {len(embedded_data)} records into Pinecone index  with model {embed_model}.")
                 embedding_of_first_record = embedded_data[0].get("values", [])
                 logger.info(f"Length of embeddings: {len(embedding_of_first_record)}")
@@ -63,7 +65,7 @@ async def embed_record_supabase_async(table_name: str,
             # Input data is a list of dictionaries
             if isinstance(data[0], dict) and len(data) > 0:
                 logger.info(f"Embedding {len(data)} records (json) into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_texts_json(embed_model, data, config)
+                embedded_data = await embed_texts_json(embed_model, data, config, api_keys)
                 logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
 
                 await async_insert_vector(table_name, embedded_data)
@@ -78,7 +80,7 @@ async def embed_record_supabase_async(table_name: str,
             # Input data is a list of strings
             if isinstance(data[0], str) and len(data) > 0:
                 logger.info(f"Embedding {len(data)} records (chunked) into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_texts_chunk(embed_model, data, config, chunk_metadata, input_metadata)
+                embedded_data = await embed_texts_chunk(embed_model, data, config, chunk_metadata, input_metadata, api_keys)
                 logger.info(f"Length of embeddings (chunked): {len(embedded_data[0].get('values', []))}")
 
                 await async_insert_vector(table_name, embedded_data)
@@ -88,7 +90,7 @@ async def embed_record_supabase_async(table_name: str,
             # Input data is a list of dictionaries
             elif isinstance(data[0], dict) and len(data) > 0:
                 logger.info(f"Embedding {len(data)} records (chunked json) into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_texts_chunk_json(embed_model, data, config, chunk_metadata)
+                embedded_data = await embed_texts_chunk_json(embed_model, data, config, chunk_metadata, api_keys)
                 logger.info(f"Length of embeddings (chunked json): {len(embedded_data[0].get('values', []))}")
 
                 await async_insert_vector(table_name, embedded_data)
@@ -128,7 +130,7 @@ async def embed_record_supabase_async(table_name: str,
                 
                 else:
                     logger.info(f"Embedding {len(data)} records (input_metadata) into Pinecone index with model {embed_model}.")
-                    embedded_data = await embed_images(embed_model, data, config, input_metadata)
+                    embedded_data = await embed_images(embed_model, data, config, input_metadata, api_keys)
                     logger.info(f"Length of embeddings (input_metadata): {len(embedded_data[0].get('values', []))}")
 
                     await async_insert_vector(table_name, embedded_data)
@@ -140,7 +142,7 @@ async def embed_record_supabase_async(table_name: str,
                 
                 # Embed based of files
                 logger.info(f"Embedding {len(files)} files into Pinecone index with model {embed_model}.")
-                embedded_data = await embed_images_files(embed_model, files, config, input_metadata)
+                embedded_data = await embed_images_files(embed_model, files, config, input_metadata, api_keys)
                 logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
 
                 await async_insert_vector(table_name, embedded_data)
@@ -154,7 +156,7 @@ async def embed_record_supabase_async(table_name: str,
         elif input_mode == "file":
             # Embed based of files
             logger.info(f"Embedding {len(files)} files into Pinecone index with model {embed_model}.")
-            embedded_data = await embed_pdf_files(embed_model, files, chunk_metadata, config, input_metadata, include_image_embedding)
+            embedded_data = await embed_pdf_files(embed_model, files, chunk_metadata, config, input_metadata, include_image_embedding, api_keys)
             logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
 
             await async_insert_vector(table_name, embedded_data)

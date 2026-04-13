@@ -27,7 +27,9 @@ def create_pinecone_index(request):
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
             
-            pinecone_api_key = data.get("pinecone_api_key", os.getenv("PINECONE_API_KEY"))
+            pinecone_api_key = data.get("pinecone_api_key")
+            if pinecone_api_key is None:
+                raise ValueError("Pinecone API key is required.")
 
             logger.info(f"Pinecone api key:{pinecone_api_key}")
             pc = Pinecone(api_key=pinecone_api_key)
@@ -63,7 +65,10 @@ def get_pinecone_indexes(request):
         try:
             query_params = request.GET
             
-            pinecone_api_key =  query_params.get("pinecone_api_key", os.getenv("PINECONE_API_KEY")) 
+            pinecone_api_key =  query_params.get("pinecone_api_key")
+            if pinecone_api_key is None:
+                raise ValueError("Pinecone API key is required.")
+             
             pc = Pinecone(api_key=pinecone_api_key)
             listed_indexes=pc.list_indexes()
 
@@ -103,7 +108,9 @@ def delete_pinecone_index(request):
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
             
-            pinecone_api_key = data.get("pinecone_api_key", os.getenv("PINECONE_API_KEY"))
+            pinecone_api_key = data.get("pinecone_api_key")
+            if pinecone_api_key is None:
+                raise ValueError("Pinecone API key is required.")
             index_name = data.get("index_name")
 
             pc = Pinecone(api_key=pinecone_api_key)
@@ -133,7 +140,10 @@ async def fetch_pinecone_index_data(request):
                 logger.info(f"Data from request (non application/json):{data}.")
             
             
-            pinecone_api_key = data.get("pinecone_api_key", os.getenv("PINECONE_API_KEY"))
+            pinecone_api_key = data.get("pinecone_api_key")
+            if pinecone_api_key is None:
+                raise ValueError("Pinecone API key is required.")
+            
             index_name = data.get("index_name")
 
             # Init pine cone index and get its description
@@ -190,7 +200,11 @@ def fetch_pinecone_index_record(request):
         try:
             query_params = request.GET
             
-            pinecone_api_key = query_params.get("pinecone_api_key", os.getenv("PINECONE_API_KEY"))
+            pinecone_api_key = query_params.get("pinecone_api_key")
+            
+            if pinecone_api_key is None:
+                raise ValueError("Pinecone API key is required.")
+            
             index_name = query_params.get("index_name")
             record_id = query_params.get("record_id")
 
@@ -234,7 +248,9 @@ def delete_pinecone_index_record(request):
                 logger.info(f"Data from request (non application/json):{data}.")
             
             
-            pinecone_api_key = data.get("pinecone_api_key", os.getenv("PINECONE_API_KEY"))
+            pinecone_api_key = data.get("pinecone_api_key")
+            if pinecone_api_key is None:
+                raise ValueError("Pinecone API key is required.")
             index_name = data.get("index_name")
             record_id = data.get("record_id")
 
