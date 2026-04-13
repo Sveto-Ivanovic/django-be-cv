@@ -3,3 +3,5 @@ __pycache__
 db.sqlite3
 .env
 test.py
+test2.py
+test3.py
