@@ -39,7 +39,8 @@ async def fetch_db_memory(state: State):
             logger.warning(f"No chat history found for ID: {conv_id}")
             logger.info(f"Creating new item for chat history table.")
 
-            time_taken, chat = await create_chat_item(ChatHistory, conv_id)
+            time_taken, chat, chat_id = await create_chat_item(ChatHistory)
+            state["conv_id"] = chat_id
             state["func_times"]["create_chat_record"] = time_taken
 
             state["chat_record_history"] = []
@@ -79,6 +80,7 @@ async def classifier_node(state: State):
         if classifier_config is None:
             raise ValueError("Configuration for classifier agent is not present.")
         
+
         # Input arguments for llm langchain class
         llm_params = {
             "state": state,

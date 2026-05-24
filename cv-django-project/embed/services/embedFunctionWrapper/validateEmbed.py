@@ -24,5 +24,5 @@ def validate_embed_model(embed_model, input_mode, include_image_embedding, api_k
             raise ValueError("Gemini embedding model requires Gemini API key. Please provide a valid Gemini API key.")
         if embed_model == "jina-embeddings-v4" and api_keys.get("jina_api_key") is None:
             raise ValueError("Jina embedding model requires Jina API key. Please provide a valid Jina API key.")
-        if embed_model == "embed-v4.0" and api_keys.get("embed_api_key") is None:
+        if embed_model == "embed-v4.0" and api_keys.get("cohere_api_key") is None:
             raise ValueError("Embed embedding model requires Cohere API key. Please provide a valid Cohere API key.")

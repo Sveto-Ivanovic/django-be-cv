@@ -19,3 +19,4 @@ supabase=2.24.0
 argon2-cffi=25.1.0
 pyjwt=2.10.1
 django-ratelimit=4.1.0
+cryptography=45.0.5

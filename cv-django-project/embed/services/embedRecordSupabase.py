@@ -8,6 +8,21 @@ from .embedFunctionWrapper.embedPDFFiles import embed_pdf_files
 from .embedFunctionWrapper.chunkMetadataValidator import validate_chunk_metadata
 from ..models import VectorSearch1536, VectorSearch2048, VectorSearch3072
 from  .asyncTableFunctions.asyncInsertVector import async_insert_vector
+from asgiref.sync import sync_to_async
+from ..models import UserVectorMetadata
+
+@sync_to_async
+def update_namespace_row_count(namespace, user_id, count, namespace_type):
+    """Updates the row count for a given namespace and namespace type in the UserVectorMetadata model."""
+    try:
+        namespace_metadata = UserVectorMetadata.objects.get(user_id=user_id, namespace=namespace, namespace_type=namespace_type)
+        namespace_metadata.row_count = count + namespace_metadata.row_count
+        namespace_metadata.save()
+        logger.info(f"Updated row count for user_id: {user_id}, namespace: {namespace}, namespace_type: {namespace_type} to {count}.")
+    except UserVectorMetadata.DoesNotExist:
+        logger.error(f"UserVectorMetadata does not exist for user_id: {user_id}, namespace: {namespace}, namespace_type: {namespace_type}. Cannot update row count.")
+    except Exception as e:
+        logger.error(f"Error updating row count for user_id: {user_id}, namespace: {namespace}, namespace_type: {namespace_type}. Error: {str(e)}")
 
 async def embed_record_supabase_async(table_name: str,
                                       embed_model: str, 
@@ -18,7 +33,10 @@ async def embed_record_supabase_async(table_name: str,
                                       files: list | None = None,
                                       input_metadata: list | None = [],
                                       include_image_embedding: bool = False,
-                                      api_keys: dict | None = None):
+                                      api_keys: dict | None = None,
+                                      namespace_info: str | None = None,
+                                      user_id: str | None = None
+                                      ):
                                       
     """
     Function to embed records into Pinecone.
@@ -33,6 +51,8 @@ async def embed_record_supabase_async(table_name: str,
     :param files: List of files to embed, if applicable
     :param include_image_embedding: Boolean indicating if image embedding should be included in file input mode
     :param api_keys: API keys for external services, if applicable
+    :param namespace_info: Namespace name
+    :param user_id: ID of the user, if applicable
     :return: Response indicating success or failure
     """
     try:
@@ -54,22 +74,24 @@ async def embed_record_supabase_async(table_name: str,
             # Input data is a list of strings
             if isinstance(data[0], str) and len(data) > 0:
                 embedded_data = await embed_texts(embed_model, data, config, input_metadata, api_keys)
-                logger.info(f"Embedding {len(embedded_data)} records into Pinecone index  with model {embed_model}.")
+                logger.info(f"Embedding {len(embedded_data)} records into Supabase with model {embed_model}.")
                 embedding_of_first_record = embedded_data[0].get("values", [])
                 logger.info(f"Length of embeddings: {len(embedding_of_first_record)}")
 
-                await async_insert_vector(table_name, embedded_data)
-                logger.info(f"Successfully embedded {len(embedded_data)} records into Pinecone index.")
+                await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                logger.info(f"Successfully embedded {len(embedded_data)} records into Supabase index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                 return {"status": "success", "message": "Records embedded successfully"}
             
             # Input data is a list of dictionaries
             if isinstance(data[0], dict) and len(data) > 0:
-                logger.info(f"Embedding {len(data)} records (json) into Pinecone index with model {embed_model}.")
+                logger.info(f"Embedding {len(data)} records (json) into Supabase with model {embed_model}.")
                 embedded_data = await embed_texts_json(embed_model, data, config, api_keys)
                 logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
 
-                await async_insert_vector(table_name, embedded_data)
-                logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Pinecone index.")
+                await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Supabase index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                 return {"status": "success", "message": "Records embedded successfully"}
 
         # Embedding texts with chunking
@@ -79,22 +101,24 @@ async def embed_record_supabase_async(table_name: str,
             
             # Input data is a list of strings
             if isinstance(data[0], str) and len(data) > 0:
-                logger.info(f"Embedding {len(data)} records (chunked) into Pinecone index with model {embed_model}.")
+                logger.info(f"Embedding {len(data)} records (chunked) into Supabase with model {embed_model}.")
                 embedded_data = await embed_texts_chunk(embed_model, data, config, chunk_metadata, input_metadata, api_keys)
                 logger.info(f"Length of embeddings (chunked): {len(embedded_data[0].get('values', []))}")
 
-                await async_insert_vector(table_name, embedded_data)
-                logger.info(f"Successfully embedded (chunked) {len(embedded_data)} records into Pinecone index.")
+                await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                logger.info(f"Successfully embedded (chunked) {len(embedded_data)} records into Supabase index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                 return {"status": "success", "message": "Records embedded successfully"}
             
             # Input data is a list of dictionaries
             elif isinstance(data[0], dict) and len(data) > 0:
-                logger.info(f"Embedding {len(data)} records (chunked json) into Pinecone index with model {embed_model}.")
+                logger.info(f"Embedding {len(data)} records (chunked json) into Supabase with model {embed_model}.")
                 embedded_data = await embed_texts_chunk_json(embed_model, data, config, chunk_metadata, api_keys)
                 logger.info(f"Length of embeddings (chunked json): {len(embedded_data[0].get('values', []))}")
 
-                await async_insert_vector(table_name, embedded_data)
-                logger.info(f"Successfully embedded (chunked json) {len(embedded_data)} records into Pinecone index.")
+                await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                logger.info(f"Successfully embedded (chunked json) {len(embedded_data)} records into Supabase index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                 return {"status": "success", "message": "Records embedded successfully"}
 
         elif input_mode == "image":
@@ -120,21 +144,23 @@ async def embed_record_supabase_async(table_name: str,
                 # If input_metadata is provided, it will have three posible cases: 
                 # length of input_metadata is same as length of data, length of input_metadata is 0, or length of input_metadata is 1 (here metadata is shared for all records) 
                 if indicator: 
-                    logger.info(f"Embedding {len(data)} records (json) into Pinecone index with model {embed_model}.")
+                    logger.info(f"Embedding {len(data)} records (json) into Supabase index with model {embed_model}.")
                     embedded_data = await embed_images_json(embed_model, data, config)
                     logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
 
-                    await async_insert_vector(table_name, embedded_data)
-                    logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Pinecone index.")
+                    await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                    logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Supabase index.")
+                    await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                     return {"status": "success", "message": "Records embedded successfully"}
                 
                 else:
-                    logger.info(f"Embedding {len(data)} records (input_metadata) into Pinecone index with model {embed_model}.")
+                    logger.info(f"Embedding {len(data)} records (input_metadata) into Supabase index with model {embed_model}.")
                     embedded_data = await embed_images(embed_model, data, config, input_metadata, api_keys)
                     logger.info(f"Length of embeddings (input_metadata): {len(embedded_data[0].get('values', []))}")
 
-                    await async_insert_vector(table_name, embedded_data)
-                    logger.info(f"Successfully embedded (input_metadata) {len(embedded_data)} records into Pinecone index.")
+                    await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                    logger.info(f"Successfully embedded (input_metadata) {len(embedded_data)} records into Supabase index.")
+                    await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                     return {"status": "success", "message": "Records embedded successfully"}
                 
             elif len(data) == 0 and files is not None:
@@ -145,8 +171,9 @@ async def embed_record_supabase_async(table_name: str,
                 embedded_data = await embed_images_files(embed_model, files, config, input_metadata, api_keys)
                 logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
 
-                await async_insert_vector(table_name, embedded_data)
-                logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Pinecone index.")
+                await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+                logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Supabase index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
                 return {"status": "success", "message": "Records embedded successfully"}
 
             else:
@@ -155,12 +182,13 @@ async def embed_record_supabase_async(table_name: str,
         # this mode supports processing of pdf files and txt files
         elif input_mode == "file":
             # Embed based of files
-            logger.info(f"Embedding {len(files)} files into Pinecone index with model {embed_model}.")
+            logger.info(f"Embedding {len(files)} files into Supabase index with model {embed_model}.")
             embedded_data = await embed_pdf_files(embed_model, files, chunk_metadata, config, input_metadata, include_image_embedding, api_keys)
             logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
 
-            await async_insert_vector(table_name, embedded_data)
-            logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Pinecone index.")
+            await async_insert_vector(table_name, embedded_data, namespace_info=namespace_info, user_id=user_id)
+            logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Supabase index.")
+            await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="supabase")
             return {"status": "success", "message": "Records embedded successfully"}
 
         else:
@@ -169,6 +197,6 @@ async def embed_record_supabase_async(table_name: str,
         return {"status": "success", "message": "Records embedded successfully"}
     
     except Exception as e:
-        logger.error(f"Error embedding records into Pinecone: {str(e)}")
+        logger.error(f"Error embedding records into Supabase: {str(e)}")
         raise
     

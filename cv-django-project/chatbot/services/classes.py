@@ -140,6 +140,12 @@ class State(TypedDict):
 
     # Limit exceeded message
     limit_exceeded_message: Annotated[str, string_default_factory]
+
+    # User API keys
+    user_api_keys: Annotated[Dict, dict_default_factory]
+
+    # User ID
+    user_id: Annotated[UUID, uuid_default_factory]
     
 
 
@@ -163,20 +169,33 @@ class LangchainCallback(BaseCallbackHandler):
                 text_response = f"Error extracting answer from tool calls for task {self.task}: {e}"
 
         else:
-            resp = response.generations[0][0].text
-            text_response = response.generations[0][0].text if response.generations else ""
-            text_response = text_response[0:80] if len(text_response) > 80 else text_response
-            text_response = f"{text_response}..." if len(text_response) == 80 else text_response
-                
+            try:
+                resp = response.generations[0][0].text
+                text_response = response.generations[0][0].text if response.generations else ""
+                text_response = text_response[0:80] if len(text_response) > 80 else text_response
+                text_response = f"{text_response}..." if len(text_response) == 80 else text_response
+            except Exception as e:
+                resp = f"Error extracting text for task {self.task}: {e}"
+                text_response = f"Error extracting text for task {self.task}: {e}"      
             
         logger.info(f"Chat model ended for task type {self.task}, response: {text_response}")
-        temp_dict = {
-            "response": resp or "",
-            "input_tokens": response.generations[0][0].message.usage_metadata['input_tokens'],
-            "output_tokens": response.generations[0][0].message.usage_metadata['output_tokens'],
-            "total_tokens": response.generations[0][0].message.usage_metadata['total_tokens'],
-            "status": "success"
-        }
+        
+        try:
+            temp_dict = {
+                "response": resp or "",
+                "input_tokens": response.generations[0][0].message.usage_metadata['input_tokens'],
+                "output_tokens": response.generations[0][0].message.usage_metadata['output_tokens'],
+                "total_tokens": response.generations[0][0].message.usage_metadata['total_tokens'],
+                "status": "success"
+            }
+        except Exception as e:
+            temp_dict = {
+                "response": resp or "",
+                "input_tokens": None,
+                "output_tokens": None,
+                "total_tokens": None,
+                "status": f"success with error extracting token usage metadata: {e}"
+            }
 
         self.state["llm_calls"][self.task] = {**self.state["llm_calls"][self.task], **temp_dict}
 

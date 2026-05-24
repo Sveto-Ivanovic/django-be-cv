@@ -1,14 +1,16 @@
+import base64
 import json
 import uuid
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import os
-from.models import UserLogs, UserTable
+from .models import UserLogs, UserTable, UserData
 from argon2 import PasswordHasher
 from django.utils import timezone
 from dotenv import load_dotenv
 from .supabase_manager.supabase_manager import SupabaseManager
+from .encryption_functions.aes import encode_aes_256, decode_aes_256
 from django.middleware.csrf import get_token
 from django_ratelimit.decorators import ratelimit
 
@@ -92,7 +94,7 @@ def register_user(request):
 @csrf_exempt
 @ratelimit(key='ip', rate='100/h', block=True)
 def sign_in_user(request):
-    """Signs in a user using Supabase authentication."""
+    """Signs in a user using Supabase authentication. Also returns csrf token for the session. The csrf token is sent with random value per login."""
     if request.method == "POST":
 
         supabase_manager = SupabaseManager()
@@ -130,6 +132,8 @@ def sign_in_user(request):
             )
             log.save()
 
+            csrf_token = get_token(request)
+
             return JsonResponse({
                 "status": "success",
                 "access_token": response.get("session_token"),
@@ -137,6 +141,7 @@ def sign_in_user(request):
                 "user_id": str(user.user_id),
                 "auth_id": user.auth_id,
                 "username": user.user_name,
+                #"csrf_token": csrf_token
             }, status=200)
 
         except Exception as e:
@@ -254,9 +259,108 @@ def sign_out_user(request):
             return HttpResponse(f"Error signing out user: {str(e)}", status=400)
     return HttpResponse("Invalid request method. Please use POST to send a request.", status=405)
 
-csrf_exempt
+@csrf_exempt
 @ratelimit(key='ip', rate='40/m', block=True)
-def get_csrf_token(request):
+def refresh_csrf_token(request):
     """Returns a CSRF token for the client."""
     token = get_token(request)
     return JsonResponse({"csrfToken": token})
+
+
+
+@csrf_exempt
+@ratelimit(key='ip', rate='20/m', block=True)
+def update_user_keys(request):
+    """ Update users api keys in database"""
+    if request.method == "PUT":
+        
+        if request.content_type == 'application/json':
+            data_r = json.loads(request.body)
+        else:
+            data_r = request.POST.dict()
+
+        try:
+            user_id = data_r.get("user_id")
+            key_type = data_r.get("key_type")
+            api_key = data_r.get("api_key")
+            secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
+
+            if not all([user_id, key_type, api_key]):
+                return HttpResponse("Missing required fields", status=400)
+            
+            if key_type not in ["pine_cone_api_key", "gemini_api_key", "groq_api_key", "mistral_api_key", "cohere_api_key", "jina_api_key"]:
+                return HttpResponse("Invalid key type", status=400)
+            
+            encoded_api_key = encode_aes_256(secure_key, api_key)
+
+            if UserData.objects.filter(user_id = user_id).exists():
+                user_data_obj = UserData.objects.get(user_id=user_id)
+                setattr(user_data_obj, key_type, encoded_api_key.decode("utf-8"))
+                user_data_obj.save()
+            else:
+                user_data_obj = UserData.objects.create(user_id=user_id, **{key_type: encoded_api_key})
+                user_data_obj.save()
+            
+            user = UserTable.objects.get(user_id=user_id)
+
+
+            log = UserLogs(
+                user_id=user,
+                action=f"User Updated API Key: {key_type}",
+                timestamp=timezone.now(),
+                log_type="update_api_key"
+            )
+            log.save() 
+
+            return JsonResponse({
+                "status": "success",
+                "message": f"{key_type} updated successfully for user {user.user_email}"
+            }, status=200)
+            
+
+        except Exception as e:
+            return HttpResponse(f"Error updating user keys: {str(e)}", status=400)
+
+    else:
+        return HttpResponse("Invalid request method. Please use PUT to send a request.", status=405)
+    
+
+@csrf_exempt
+@ratelimit(key='ip', rate='20/m', block=True)
+def remove_key(request):
+    """ Remove users api key in the db"""
+    if request.method == "PUT":
+        
+        if request.content_type == 'application/json':
+            data_r = json.loads(request.body)
+        else:
+            data_r = request.POST.dict()
+
+        try:
+            user_id = data_r.get("user_id")
+            key_type = data_r.get("key_type")
+
+            if not all([user_id, key_type]):
+                return HttpResponse("Missing required fields", status=400)
+            
+            if key_type not in ["pine_cone_api_key", "gemini_api_key", "groq_api_key", "mistral_api_key", "cohere_api_key", "jina_api_key"]:
+                return HttpResponse("Invalid key type", status=400)
+            
+            if UserData.objects.filter(user_id = user_id).exists():
+                user_data_obj = UserData.objects.get(user_id=user_id)
+                setattr(user_data_obj, key_type, None)
+                user_data_obj.save()
+            
+ 
+
+            return JsonResponse({
+                "status": "success",
+                "message": f"{key_type} removed successfully for user {user_id}"
+            }, status=200)  
+            
+
+        except Exception as e:
+            return HttpResponse(f"Error removing user keys: {str(e)}", status=400)
+
+    else:
+        return HttpResponse("Invalid request method. Please use PUT to send a request.", status=405)
