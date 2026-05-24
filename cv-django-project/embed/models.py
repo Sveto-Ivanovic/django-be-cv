@@ -7,6 +7,7 @@ from pgvector.django import VectorField
 
 class VectorSearch1536(models.Model):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
+    namespace = models.CharField(max_length=255, blank=True, null=True)
     user_id = models.UUIDField(editable=False, null=True)
     source = models.CharField(max_length=1000, blank=True, null=True)
     metadata = JSONField(blank=True, null=True)
@@ -31,6 +32,7 @@ class VectorSearch1536(models.Model):
 class VectorSearch2048(models.Model):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
     user_id = models.UUIDField(editable=False, null=True)
+    namespace = models.CharField(max_length=255, blank=True, null=True)
     source = models.CharField(max_length=1000, blank=True, null=True)
     metadata = JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now=True)
@@ -54,6 +56,7 @@ class VectorSearch2048(models.Model):
 class VectorSearch3072(models.Model):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
     user_id = models.UUIDField(editable=False, null=True)
+    namespace = models.CharField(max_length=255, blank=True, null=True)
     source = models.CharField(max_length=1000, blank=True, null=True)
     metadata = JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now=True)
@@ -73,3 +76,17 @@ class VectorSearch3072(models.Model):
     def __str__(self):
         return f"Vector Search 3072 populated for {self.id} at {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
     
+
+class UserVectorMetadata(models.Model):
+    user_id = models.UUIDField(editable=False, null=True)
+    namespace_type = models.CharField(max_length=100, blank=True, null=True, help_text="Type of the namespace, e.g., 'supabase', 'pinecone', etc.")
+    namespace = models.CharField(max_length=255, blank=True, null=True)
+    model = models.CharField(max_length=100, blank=True, null=True)
+    row_count = models.IntegerField(blank=True, null=True)
+    supabase_table_name = models.CharField(max_length=255, blank=True, null=True)
+    additional_info = JSONField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"User Vector Metadata for user_id: {self.user_id} and namespace: {self.namespace}"

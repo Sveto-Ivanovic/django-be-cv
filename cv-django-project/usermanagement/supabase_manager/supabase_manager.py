@@ -57,10 +57,9 @@ class SupabaseManager:
         supabase = self.supabase
         if not supabase:
             return {"status": "error", "message": "User not signed in"}
-        
-        self.supabase.auth.set_session(access_token, refresh_token)
 
         try:
+            self.supabase.auth.set_session(access_token, refresh_token)
             self.supabase.auth.sign_out()
             return {"status": "success", "message": "User signed out successfully"}
         except Exception as e:

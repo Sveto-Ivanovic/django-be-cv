@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 import time
@@ -8,13 +9,87 @@ from django.utils import timezone
 from dotenv import load_dotenv
 from ..loggerChatbot import logger
 from pinecone import Pinecone
-from pinecone import ServerlessSpec
-from pinecone import PineconeAsyncio
 from ..services.helperFunctions import load_json_file
 from ..services.pinecone.createPineconeIndex import create_pinecone
 from ..services.pinecone.fetchRecordsAsyncPinecone import fetch_batch, get_record_ids, batch_record_ids, process_batch_record_results, fetch_pinecone_ids
+from asgiref.sync import sync_to_async
+from ..models import UserVectorMetadata
+from usermanagement.encryption_functions.aes import decode_aes_256
+from usermanagement.models import UserData, UserTable, UserLogs
+from asgiref.sync import sync_to_async
+from ..models import UserVectorMetadata
+
+
 
 load_dotenv(override=True)
+
+# Helper function to retrieve user information based on auth_id
+def get_user(auth_id):
+    resp = UserTable.objects.get(auth_id=auth_id)
+
+    return resp, {
+        "user_id": resp.user_id,
+        "user_email": resp.user_email,
+        "name": resp.name,
+        "surname": resp.surname,
+        "user_name": resp.user_name,
+        "user_classification": resp.user_classification,
+        "date_of_birth": resp.date_of_birth,
+        "additional_info": resp.additional_info
+    }
+
+
+# Helper function to retrieve and decode Pinecone API key for a user
+def fetch_pinecone_api_key_and_decode_aes(user_id):
+    try:
+        user_api_keys = UserData.objects.get(user_id=user_id)
+        secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
+        return decode_aes_256(secure_key, user_api_keys.pine_cone_api_key.encode("utf-8")) if user_api_keys.pine_cone_api_key else None
+
+    except UserData.DoesNotExist:
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving API keys for user {user_id}: {str(e)}")
+        return None
+    
+@sync_to_async
+def fetch_pinecone_api_key_and_decode_aes_async(user_id):
+    try:
+        user_api_keys = UserData.objects.get(user_id=user_id)
+        secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
+        return decode_aes_256(secure_key, user_api_keys.pine_cone_api_key.encode("utf-8")) if user_api_keys.pine_cone_api_key else None
+
+    except UserData.DoesNotExist:
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving API keys for user {user_id}: {str(e)}")
+        return None
+
+
+@sync_to_async  
+def log_user_action(user_id, action, log_type):
+    log = UserLogs(
+        user_id=user_id,
+        action=action,
+        timestamp=timezone.now(),
+        log_type=log_type
+    )
+    log.save()
+
+@sync_to_async
+def get_user_async(auth_id):
+    resp = UserTable.objects.get(auth_id=auth_id)
+
+    return resp, {
+        "user_id": resp.user_id,
+        "user_email": resp.user_email,
+        "name": resp.name,
+        "surname": resp.surname,
+        "user_name": resp.user_name,
+        "user_classification": resp.user_classification,
+        "date_of_birth": resp.date_of_birth,
+        "additional_info": resp.additional_info
+    }
 
 @csrf_exempt
 def create_pinecone_index(request):
@@ -27,7 +102,16 @@ def create_pinecone_index(request):
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
             
-            pinecone_api_key = data.get("pinecone_api_key")
+
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is required to retrieve API keys.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
+
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
 
@@ -41,10 +125,45 @@ def create_pinecone_index(request):
             if not pc.has_index(index_name):
                 if type_of_index == "dense" or type_of_index =="sparse":
                   create_pinecone(pc, type_of_index, index_name, vector_size)
-                  return JsonResponse({"status": "sucess", "response":f"Sucessfully created index: {index_name}"})
+
+                  log = UserLogs(
+                      user_id=usr_obj,
+                      action=f"User Created Pinecone Index: {index_name}",
+                      timestamp=timezone.now(),
+                      log_type="create_pinecone_index"
+                  )
+                  log.save()
+
+                  usr_metadata = UserVectorMetadata(
+                    user_id=user_id,
+                    namespace=index_name,
+                    namespace_type="pinecone",
+                    row_count=0,
+                    created_at=timezone.now(),
+                    updated_at=timezone.now()
+                  )
+
+                  usr_metadata.save()
+
+                  return JsonResponse({"status": "success", "response":f"Successfully created index: {index_name}"})
                 else:
+                    log = UserLogs(
+                      user_id=usr_obj,
+                      action=f"User Failed to Create Pinecone Index with invalid type: {type_of_index}",
+                      timestamp=timezone.now(),
+                      log_type="create_pinecone_index_failure"
+                    )
+                    log.save()  
+
                     return JsonResponse({"status": "failure", "response":"Index name already exists, please select another one."})
             else:
+                log = UserLogs(
+                      user_id=usr_obj,
+                      action=f"User Failed to Create Pinecone Index with existing name: {index_name}",
+                      timestamp=timezone.now(),
+                      log_type="create_pinecone_index_failure"
+                    )
+                log.save()
                 return JsonResponse({"status": "failure", "response":"Index name already exists, please select another one."})
         
         except json.JSONDecodeError:
@@ -62,10 +181,16 @@ def create_pinecone_index(request):
 @csrf_exempt
 def get_pinecone_indexes(request):
     if request.method=="GET":
-        try:
-            query_params = request.GET
-            
-            pinecone_api_key =  query_params.get("pinecone_api_key")
+        try:            
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is required to retrieve API keys.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
+
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
              
@@ -83,7 +208,15 @@ def get_pinecone_indexes(request):
                     "embed_model": item.get("embed", {}).get("model", "dense-manual")
                 })
 
-            
+            logs = UserLogs(
+                user_id=usr_obj,
+                action=f"User Fetched Pinecone Indexes",
+                timestamp=timezone.now(),
+                log_type="fetch_pinecone_indexes"
+            )
+            logs.save()
+
+
             return JsonResponse({"status": "sucess", "response":list_of_dict}, status=200)
         
         except json.JSONDecodeError:
@@ -108,13 +241,33 @@ def delete_pinecone_index(request):
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
             
-            pinecone_api_key = data.get("pinecone_api_key")
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is required to retrieve API keys.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
+
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
             index_name = data.get("index_name")
 
             pc = Pinecone(api_key=pinecone_api_key)
             pc.delete_index(name=index_name)
+
+            log = UserLogs(
+                user_id=usr_obj,
+                action=f"User Deleted Pinecone Index: {index_name}",
+                timestamp=timezone.now(),
+                log_type="delete_pinecone_index"
+            )
+            log.save()
+
+            usr_metadata = UserVectorMetadata.objects.filter(user_id=user_id, namespace=index_name, namespace_type="pinecone").first()
+            if usr_metadata:
+                usr_metadata.delete()   
             
             return JsonResponse({"status": "sucess", "response":f"Sucessfully deleted index:{index_name}"}, status=200)
         
@@ -130,21 +283,21 @@ def delete_pinecone_index(request):
 
 @csrf_exempt
 async def fetch_pinecone_index_data(request):
-    if request.method=="POST":
-        try:
-            if request.content_type == 'application/json':
-                data = json.loads(request.body)
-                logger.info(f"Data from request (application/json):{data}.")
-            else:
-                data = request.POST
-                logger.info(f"Data from request (non application/json):{data}.")
-            
-            
-            pinecone_api_key = data.get("pinecone_api_key")
+    if request.method=="GET":
+        try:            
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is required to retrieve API keys.")
+
+            usr_obj, usr_response = await get_user_async(auth_id)
+            user_id = usr_response["user_id"]
+
+            pinecone_api_key = await fetch_pinecone_api_key_and_decode_aes_async(user_id)
+
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
             
-            index_name = data.get("index_name")
+            index_name = request.GET.get("index_name")
 
             # Init pine cone index and get its description
             start_time = time.time()
@@ -163,7 +316,7 @@ async def fetch_pinecone_index_data(request):
 
             pc = Pinecone(api_key=pinecone_api_key)
 
-            semaphore = asyncio.Semaphore(20)
+            semaphore = asyncio.Semaphore(5)
             
 
             index_async = pc.IndexAsyncio(host=index_description.index.host)
@@ -181,6 +334,8 @@ async def fetch_pinecone_index_data(request):
             records = process_batch_record_results(batch_results)
 
             await index_async.close()
+
+            await log_user_action(usr_obj, f"User Fetched Records from Pinecone Index: {index_name}", "fetch_pinecone_index_data")
 
             logger.info(f"Number of records retrieved:{len(records)}")            
             return JsonResponse({"status": "sucess", "response": records}, status=200)
@@ -200,7 +355,15 @@ def fetch_pinecone_index_record(request):
         try:
             query_params = request.GET
             
-            pinecone_api_key = query_params.get("pinecone_api_key")
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is required to retrieve API keys.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
+
             
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
@@ -223,6 +386,14 @@ def fetch_pinecone_index_record(request):
                 "id":record.vectors[record_id].id,
             }
          
+            log = UserLogs(
+                user_id=usr_obj,
+                action=f"User Fetched Record with id: {record_id} from Pinecone Index: {index_name}",
+                timestamp=timezone.now(),
+                log_type="fetch_pinecone_index_record"
+            )
+            log.save()  
+
             return JsonResponse({"status": "sucess", "response": response}, status=200)
         
         except json.JSONDecodeError:
@@ -248,7 +419,15 @@ def delete_pinecone_index_record(request):
                 logger.info(f"Data from request (non application/json):{data}.")
             
             
-            pinecone_api_key = data.get("pinecone_api_key")
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is required to retrieve API keys.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
+
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
             index_name = data.get("index_name")
@@ -265,8 +444,23 @@ def delete_pinecone_index_record(request):
 
             # get vector indexes
             index.delete(ids=record_id)
-         
-            return JsonResponse({"status": "sucess", "response": f"Sucessfully deleted record with id: {record_id}"}, status=200)
+
+
+            log = UserLogs(
+                user_id=usr_obj,
+                action=f"User Deleted Record with id: {record_id} from Pinecone Index: {index_name}",
+                timestamp=timezone.now(),
+                log_type="delete_pinecone_index_record"
+            )
+            log.save()
+
+            usr_metadata = UserVectorMetadata.objects.filter(user_id=user_id, namespace=index_name, namespace_type="pinecone").first()
+            if usr_metadata:
+                usr_metadata.row_count = max(usr_metadata.row_count - len(record_id), 0)
+                usr_metadata.updated_at = timezone.now()
+                usr_metadata.save()
+                
+            return JsonResponse({"status": "success", "response": f"Successfully deleted record with id: {record_id}"}, status=200)
         
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")

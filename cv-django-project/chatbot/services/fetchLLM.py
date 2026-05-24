@@ -12,29 +12,38 @@ from loggerChatbot import logger
 
 load_dotenv()
 
-os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
-os.environ["MISTRAL_API_KEY"] = os.getenv("MISTRAL_API_KEY")
-os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
-
-
 def fetchLLMFallbacks(state, task: str, fallbacks_models: List[str] = None, temperature: int = 0, thinking_budget: int = None, structured_output=None):
     llms=[]
     for model_name in fallbacks_models:
         if 'gemini' in model_name:
+
+            gemini_api_key = state.get("user_api_keys", {}).get("gemini_api_key")
+            if not gemini_api_key:
+                logger.error(f"Gemini API key not found for user {state.get('user_info', {}).get('user_id')}")
+                continue
+
             if thinking_budget and model_name in "gemini-2.5-flash":
-                llm= ChatGoogleGenerativeAI(model= model_name, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
+                llm= ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= model_name, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
                 llm = structureLLM(llm, structured_output)
                 llms.append(llm)
             else:
-                llm = ChatGoogleGenerativeAI(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
+                llm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
                 llm = structureLLM(llm, structured_output)
                 llms.append(llm)
         elif 'tral' in model_name:
-            llm = ChatMistralAI(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Minstral", task)])
+            mistral_api_key = state.get("user_api_keys", {}).get("mistral_api_key")
+            if not mistral_api_key:
+                logger.error(f"Mistral API key not found for user {state.get('user_info', {}).get('user_id')}")
+                continue
+            llm = ChatMistralAI(groq_api_key=mistral_api_key, model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Minstral", task)])
             llm = structureLLM(llm, structured_output)
             llms.append(llm)
         else:
-            llm = ChatGroq(model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Groq", task)])
+            groq_api_key = state.get("user_api_keys", {}).get("groq_api_key")
+            if not groq_api_key:
+                logger.error(f"Groq API key not found for user {state.get('user_info', {}).get('user_id')}")
+                continue
+            llm = ChatGroq(groq_api_key=groq_api_key, model= model_name, temperature=temperature, callbacks=[LangchainCallback(state, model_name, "Groq", task)])
             llm = structureLLM(llm, structured_output)
             llms.append(llm)
     return llms
@@ -45,49 +54,65 @@ def fetchLLM(state, llm_model: str, task: str, fallbacks_models: List[str] = Non
     """
     if 'gemini' in llm_model:
 
+        gemini_api_key = state.get("user_api_keys", {}).get("gemini_api_key")
+        if not gemini_api_key:
+            logger.error(f"Gemini API key not found for user {state.get('user_info', {}).get('user_id')}")
+            return None
+
         if fallbacks_models is None:
             if thinking_budget and llm_model in "gemini-2.5-flash":
-                llm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                llm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model=llm_model, temperature=temperature, thinking_budget=thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
                 llm = structureLLM(llm, structured_output)
                 return llm.with_retry(stop_after_attempt=retry)
             else:
-                llm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                llm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
                 llm = structureLLM(llm, structured_output)
                 return llm.with_retry(stop_after_attempt=retry)
         else:
             fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
             if thinking_budget and llm_model in "gemini-2.5-flash":
-                primaryllm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                primaryllm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= llm_model, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
                 primaryllm = structureLLM(primaryllm, structured_output)
                 primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
                 return primaryllm.with_fallbacks(fallback_llms)
             else:
-                primaryllm = ChatGoogleGenerativeAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
+                primaryllm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
                 primaryllm = structureLLM(primaryllm, structured_output)
                 primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
                 return primaryllm.with_fallbacks(fallback_llms)
  
     elif 'tral' in llm_model:
+
+        mistral_api_key = state.get("user_api_keys", {}).get("mistral_api_key")
+        if not mistral_api_key:
+            logger.error(f"Mistral API key not found for user {state.get('user_info', {}).get('user_id')}")
+            return None
+
         if fallbacks_models is None:
-            llm = ChatMistralAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
+            llm = ChatMistralAI(mistral_api_key=mistral_api_key, model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
             llm = structureLLM(llm, structured_output)
             llm = llm.with_retry(stop_after_attempt=retry)
             return llm
         else:
             fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
-            primaryllm=ChatMistralAI(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
+            primaryllm=ChatMistralAI(mistral_api_key=mistral_api_key, model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Minstral", task)])
             primaryllm = structureLLM(primaryllm, structured_output)
             primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
             return primaryllm.with_fallbacks(fallback_llms)
     else:
+        groq_api_key = state.get("user_api_keys", {}).get("groq_api_key")
+        if not groq_api_key:
+            logger.error(f"Groq API key not found for user {state.get('user_info', {}).get('user_id')}")
+            return None
+        
         if fallbacks_models is None:
-            llm = ChatGroq(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Groq", task)])
+            llm = ChatGroq(groq_api_key=groq_api_key, model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Groq", task)])
             llm = structureLLM(llm, structured_output)
             llm = llm.with_retry(stop_after_attempt=retry)
             return llm
         else:
             fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
-            primaryllm=ChatGroq(model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Groq", task)])
+            primaryllm=ChatGroq(groq_api_key=groq_api_key, model= llm_model, temperature=temperature, callbacks=[LangchainCallback(state, llm_model, "Groq", task)])
             primaryllm = structureLLM(primaryllm, structured_output)
             primaryllm = primaryllm.with_retry(stop_after_attempt=retry)
             return primaryllm.with_fallbacks(fallback_llms)

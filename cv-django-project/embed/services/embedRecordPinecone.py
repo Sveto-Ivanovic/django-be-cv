@@ -6,6 +6,22 @@ from .embedFunctionWrapper.validateFilesImage import validate_files_image
 from .embedFunctionWrapper.embedFilesImages import embed_images_files
 from .embedFunctionWrapper.embedPDFFiles import embed_pdf_files
 from .embedFunctionWrapper.chunkMetadataValidator import validate_chunk_metadata
+from asgiref.sync import sync_to_async
+from ..models import UserVectorMetadata
+
+@sync_to_async
+def update_namespace_row_count(namespace, user_id, count, namespace_type):
+    """Updates the row count for a given namespace and namespace type in the UserVectorMetadata model."""
+    try:
+        namespace_metadata = UserVectorMetadata.objects.get(user_id=user_id, namespace=namespace, namespace_type=namespace_type)
+        namespace_metadata.row_count = count + namespace_metadata.row_count
+        namespace_metadata.save()
+        logger.info(f"Updated row count for user_id: {user_id}, namespace: {namespace}, namespace_type: {namespace_type} to {count}.")
+    except UserVectorMetadata.DoesNotExist:
+        logger.error(f"UserVectorMetadata does not exist for user_id: {user_id}, namespace: {namespace}, namespace_type: {namespace_type}. Cannot update row count.")
+    except Exception as e:
+        logger.error(f"Error updating row count for user_id: {user_id}, namespace: {namespace}, namespace_type: {namespace_type}. Error: {str(e)}")
+
 
 async def embed_record_pinecone_async(index, 
                                       embed_model: str, 
@@ -16,7 +32,10 @@ async def embed_record_pinecone_async(index,
                                       files: list | None = None,
                                       input_metadata: list | None = [],
                                       include_image_embedding: bool = False,
-                                      api_keys: dict | None = None):
+                                      api_keys: dict | None = None,
+                                      namespace_info: str | None = None,
+                                      user_id: str | None = None
+                                      ):
                                       
     """
     Function to embed records into Pinecone.
@@ -30,6 +49,8 @@ async def embed_record_pinecone_async(index,
     :param input_metadata: Metadata for each record, can be empty, same length as data or one item shared for all records
     :param files: List of files to embed, if applicable
     :param include_image_embedding: Boolean indicating if image embedding should be included in file input mode
+    :param api_keys: Dictionary containing API keys for embedding models, if required
+    :param namespace_info: name of namespace 
     :return: Response indicating success or failure
     """
     try:
@@ -47,6 +68,7 @@ async def embed_record_pinecone_async(index,
                 logger.info(f"Length of embeddings: {len(embedding_of_first_record)}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded {len(embedded_data)} records into Pinecone index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                 return {"status": "success", "message": "Records embedded successfully"}
             
             # Input data is a list of dictionaries
@@ -56,6 +78,7 @@ async def embed_record_pinecone_async(index,
                 logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Pinecone index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                 return {"status": "success", "message": "Records embedded successfully"}
 
         # Embedding texts with chunking
@@ -70,6 +93,7 @@ async def embed_record_pinecone_async(index,
                 logger.info(f"Length of embeddings (chunked): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (chunked) {len(embedded_data)} records into Pinecone index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                 return {"status": "success", "message": "Records embedded successfully"}
             
             # Input data is a list of dictionaries
@@ -79,6 +103,7 @@ async def embed_record_pinecone_async(index,
                 logger.info(f"Length of embeddings (chunked json): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (chunked json) {len(embedded_data)} records into Pinecone index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                 return {"status": "success", "message": "Records embedded successfully"}
 
         elif input_mode == "image":
@@ -109,6 +134,7 @@ async def embed_record_pinecone_async(index,
                     logger.info(f"Length of embeddings (json): {len(embedded_data[0].get('values', []))}")
                     index.upsert(embedded_data)
                     logger.info(f"Successfully embedded (json) {len(embedded_data)} records into Pinecone index.")
+                    await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                     return {"status": "success", "message": "Records embedded successfully"}
                 
                 else:
@@ -117,6 +143,7 @@ async def embed_record_pinecone_async(index,
                     logger.info(f"Length of embeddings (input_metadata): {len(embedded_data[0].get('values', []))}")
                     index.upsert(embedded_data)
                     logger.info(f"Successfully embedded (input_metadata) {len(embedded_data)} records into Pinecone index.")
+                    await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                     return {"status": "success", "message": "Records embedded successfully"}
                 
             elif len(data) == 0 and files is not None:
@@ -128,6 +155,7 @@ async def embed_record_pinecone_async(index,
                 logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
                 index.upsert(embedded_data)
                 logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Pinecone index.")
+                await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
                 return {"status": "success", "message": "Records embedded successfully"}
 
             else:
@@ -141,6 +169,7 @@ async def embed_record_pinecone_async(index,
             logger.info(f"Length of embeddings (files): {len(embedded_data[0].get('values', []))}")
             index.upsert(embedded_data)
             logger.info(f"Successfully embedded (files) {len(embedded_data)} records into Pinecone index.")
+            await update_namespace_row_count(namespace_info, user_id, len(embedded_data), namespace_type="pinecone")
             return {"status": "success", "message": "Records embedded successfully"}
 
         else:

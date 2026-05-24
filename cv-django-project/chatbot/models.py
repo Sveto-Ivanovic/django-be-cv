@@ -5,6 +5,7 @@ from django.db.models import JSONField
 
 class ChatHistory(models.Model):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
+    user_id = models.UUIDField(editable=False, null=True)
     history = JSONField()
     created_at = models.DateTimeField(auto_now=True)
     last_updated_at = models.DateTimeField(auto_now=True)
@@ -18,6 +19,7 @@ class ChatHistory(models.Model):
 class MessageHistory(models.Model):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
     chat_id = models.UUIDField(editable=False, null=False)
+    user_id = models.UUIDField(editable=False, null=True)
     created_at = models.DateTimeField(auto_now=True)
     question = models.CharField(max_length=30000, blank=False, null=False)
     answer = models.CharField(max_length=30000, blank=False, null=False)

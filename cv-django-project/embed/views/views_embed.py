@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 import time
@@ -14,7 +15,9 @@ from ..services.embedFunctionWrapper.validateEmbed import validate_embed_model
 from ..services.embedFunctionWrapper.destringify import destringify
 from ..services.embedRecordSupabase import embed_record_supabase_async
 from usermanagement.models import UserData, UserTable, UserLogs
+from usermanagement.encryption_functions.aes import decode_aes_256
 from django.forms.models import model_to_dict
+from ..models import UserVectorMetadata
 from django.utils import timezone
 from asgiref.sync import sync_to_async
 
@@ -47,28 +50,44 @@ def log_user_action(user, action, log_type="action"):
 def get_user_api_keys(user_id):
     try:
         user_api_keys = UserData.objects.get(user_id=user_id)
+        secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
         return {
-            "groq_api_key": user_api_keys.groq_api_key,
-            "mistral_api_key": user_api_keys.mistral_api_key,
-            "cohere_api_key": user_api_keys.cohere_api_key,
-            "jina_api_key": user_api_keys.jina_api_key,
-            "gemini_api_key": user_api_keys.gemini_api_key,  
-            "pinecone_api_key": user_api_keys.pine_cone_api_key 
+            "groq_api_key": decode_aes_256(secure_key, user_api_keys.groq_api_key.encode("utf-8")) if user_api_keys.groq_api_key else None,
+            "mistral_api_key": decode_aes_256(secure_key, user_api_keys.mistral_api_key.encode("utf-8")) if user_api_keys.mistral_api_key else None,
+            "cohere_api_key": decode_aes_256(secure_key, user_api_keys.cohere_api_key.encode("utf-8")) if user_api_keys.cohere_api_key else None,
+            "jina_api_key": decode_aes_256(secure_key, user_api_keys.jina_api_key.encode("utf-8")) if user_api_keys.jina_api_key else None,
+            "gemini_api_key": decode_aes_256(secure_key, user_api_keys.gemini_api_key.encode("utf-8")) if user_api_keys.gemini_api_key else None,
+            "pinecone_api_key": decode_aes_256(secure_key, user_api_keys.pine_cone_api_key.encode("utf-8")) if user_api_keys.pine_cone_api_key else None
         }
         
     except UserData.DoesNotExist:
         return None
+    except Exception as e:
+        logger.error(f"Error retrieving API keys for user {user_id}: {str(e)}")
+        return None
+
+@sync_to_async
+def namespace_supabase_handler(user_id, namespace, namespace_type, table_name=None):
+    """Handles namespace logic for supabase and pinecone, where namepsace for pinecone is just equivalent to instance."""
+    if not namespace:
+        raise ValueError("Namespace is required for Supabase embedding.")
+
+    if  UserVectorMetadata.objects.filter(user_id=user_id, namespace=namespace, namespace_type=namespace_type).exists():
+        return namespace 
+       
+    else:
+        new_namespace_metadata = UserVectorMetadata(
+            user_id=user_id,
+            namespace=namespace,
+            namespace_type=namespace_type,
+            supabase_table_name=table_name if namespace_type=="supabase" else None,
+            row_count=0
+        )
+        new_namespace_metadata.save()
+        return namespace
 
 
 load_dotenv(override=True)
-
-
-
-
-
-
-
-
 
 @csrf_exempt
 async def embed_items_into_pinecone(request):
@@ -111,7 +130,7 @@ async def embed_items_into_pinecone(request):
             else:
                 return HttpResponse("No API keys found for the provided user ID.", status=404)
             
-            pinecone_api_key = user_api_keys.pinecone_api_key
+            pinecone_api_key = user_api_keys.get("pinecone_api_key")
             if not pinecone_api_key:
                 return HttpResponse("No Pinecone API key found for the provided user ID.", status=404)
 
@@ -127,6 +146,8 @@ async def embed_items_into_pinecone(request):
                 index_description=pc.describe_index(name=index_name)
             else:
                 raise ValueError("No index found.")
+            
+            namespace_index_info = await namespace_supabase_handler(user_id, index_name, namespace_type="pinecone")
             
             if index_description.index.get("dimension") is None:
                 raise ValueError("This endpoint doesn't support indexes whose embedding models belong to Pinecone's default models. Please create an index with a custom embedding model.")
@@ -146,7 +167,9 @@ async def embed_items_into_pinecone(request):
                 input_metadata=input_metadata,
                 files=request.FILES.dict() if hasattr(request, 'FILES') else None,
                 include_image_embedding=include_image_embedding,
-                api_keys=user_api_keys
+                api_keys=user_api_keys,
+                namespace_info = namespace_index_info,
+                user_id=user_id
             )
 
             await log_user_action(user_obj, f"Embedded items into Pinecone index {index_name} using model {embed_model}", log_type="embedding_pinecone")
@@ -189,6 +212,7 @@ async def embed_items_into_supabase(request):
             input_mode = data_r.get("input_mode")
             chunk_config = data_r.get("chunk_config", None)
             input_metadata = data_r.get("input_metadata", None)
+            namespace = data_r.get("namespace", None)
             config = load_json_file("defaults.json")
             data = data_r.get("data", [])
             include_image_embedding = data_r.get("include_image_embedding", False)
@@ -215,6 +239,8 @@ async def embed_items_into_supabase(request):
             # Check if the index is compatible with the embedding model
             check_embed_validity_supabase(table_name, embed_model)
 
+            namespace_info = await namespace_supabase_handler(user_id, namespace, namespace_type="supabase", table_name=table_name)
+
             logger.info(f"All validations passed. Proceeding to embed records into Supabase table {table_name} using model {embed_model}.")
             
             res = await embed_record_supabase_async(
@@ -227,7 +253,9 @@ async def embed_items_into_supabase(request):
                 input_metadata=input_metadata,
                 files=request.FILES.dict() if hasattr(request, 'FILES') else None,
                 include_image_embedding=include_image_embedding ,
-                api_keys=user_api_keys
+                api_keys=user_api_keys,
+                namespace_info=namespace_info,
+                user_id=user_id
             )
 
             await log_user_action(user_obj, f"Embedded items into Supabase table {table_name} using model {embed_model}", log_type="embedding_pinecone")

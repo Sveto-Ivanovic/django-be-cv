@@ -16,11 +16,12 @@ def is_valid_uuid4(value: str) -> bool:
 
 
 @sync_to_async()
-def async_insert_vector(table_name: str, vector_data: list):
+def async_insert_vector(table_name: str, vector_data: list, namespace_info: str = None, user_id: str = None):
     """Insert vector data into the specified table asynchronously.
         :param table_name: Name of the table to insert data into.
         :param vector_data: List of dictionaries containing vector data with keys 'id', 'values', and 'metadata'.
-        
+        :param namespace_info: Namespace for the vector data.
+        :param user_id: ID of the user inserting the data.
     """
     try:
         array = []
@@ -45,7 +46,6 @@ def async_insert_vector(table_name: str, vector_data: list):
             is_chunk = False
             chunk_number = None
             type_of_flow = None
-            print(metadata)
 
             if metadata:
                 
@@ -62,7 +62,7 @@ def async_insert_vector(table_name: str, vector_data: list):
             if table_name == "vector_search_1536":
                 
                 array.append(VectorSearch1536(
-                    id=id,
+                    user_id=user_id,
                     source=source,
                     metadata=metadata,
                     created_at=created_at,
@@ -71,13 +71,14 @@ def async_insert_vector(table_name: str, vector_data: list):
                     is_chunk=is_chunk,
                     chunk_number=chunk_number,
                     type=type_of_flow,
-                    embedding=vector
+                    embedding=vector,
+                    namespace=namespace_info    
                     ))
                 
             elif table_name == "vector_search_2048":
                 
                 array.append(VectorSearch2048(
-                    id=id,
+                    user_id=user_id,
                     source=source,
                     metadata=metadata,
                     created_at=created_at,
@@ -86,13 +87,14 @@ def async_insert_vector(table_name: str, vector_data: list):
                     is_chunk=is_chunk,
                     chunk_number=chunk_number,
                     type=type_of_flow,
-                    embedding=vector
+                    embedding=vector,
+                    namespace=namespace_info
                     ))
                 
             elif table_name == "vector_search_3072":
 
                 array.append(VectorSearch3072(
-                    id=id,
+                    user_id=user_id,
                     source=source,
                     metadata=metadata,
                     created_at=created_at,
@@ -101,7 +103,8 @@ def async_insert_vector(table_name: str, vector_data: list):
                     is_chunk=is_chunk,
                     chunk_number=chunk_number,
                     type=type_of_flow,
-                    embedding=vector
+                    embedding=vector,
+                    namespace=namespace_info
                     ))
                 
             else:
