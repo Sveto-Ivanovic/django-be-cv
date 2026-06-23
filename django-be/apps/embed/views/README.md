@@ -1,4 +1,4 @@
-# Pinecone & Supabase Embedding Endpoints 🚀
+# Pinecone & Supabase Embedding Endpoints
 
 This document outlines how to use the universal embedding endpoints to process and upsert text, images, and documents into [Pinecone](https://www.pinecone.io/) vector indexes or Supabase vector tables.
 
@@ -17,17 +17,16 @@ This document outlines how to use the universal embedding endpoints to process a
 
 These are the main fields for every request.
 
+* `pinecone_api_key` (string, **required**): Your Pinecone API key. The pinecone api key is inserted via usermanagment app endoints. It is used for pinecone related embedding.
+
 ### Pinecone-Specific Parameters
 
-* `pinecone_api_key` (string, **required**): Your Pinecone API key.
 * `index_name` (string, **required**): The name of your target Pinecone index.
+* `lexical_index_name` (string, **optional**): The name of your target Pinecone index for lexical search. This index is special as it is used for only lexical search. This enables hybrid search via pinecone API. Needs to be made via endpoint */create_textsearch_index/.
 
 ### Supabase-Specific Parameters
 
-* `table_name` (string, **required**): The name of your target Supabase table. Must be one of the supported tables:
-  - `vector_search_1536` - For 1536-dimensional embeddings (Cohere embed-v4.0)
-  - `vector_search_2048` - For 2048-dimensional embeddings (Jina jina-embeddings-v4)
-  - `vector_search_3072` - For 3072-dimensional embeddings (Gemini gemini-embedding-001)
+* `namespace` (string, **required**): The name of your namespace in the supabase table.
 
 ### Common Parameters (Both Endpoints)
 
@@ -42,6 +41,11 @@ These are the main fields for every request.
 
 ## Embedding Models
 
+For Supabase embedding model decides which table will be targeted:
+  - `vector_search_1536` - For 1536-dimensional embeddings (Cohere embed-v4.0)
+  - `vector_search_2048` - For 2048-dimensional embeddings (Jina jina-embeddings-v4)
+  - `vector_search_3072` - For 3072-dimensional embeddings (Gemini gemini-embedding-001)
+
 ### Pinecone
 The chosen embedding model's dimensions **must match** the dimension of your Pinecone dense index.
 
@@ -55,7 +59,6 @@ The chosen embedding model **must match** the table dimensions as follows:
 | `embed-v4.0`             | `1536`     | `vector_search_1536`    | Text, Image             | Multimodal model suitable for both text and image data.             |
 
 ⚠️ **Important**: 
-- For Supabase, you must use the correct table for your chosen model
 - When using `input_mode: "file"`, the `gemini-embedding-001` model can only be used if `include_image_embedding` is set to `false`
 
 ---
@@ -70,8 +73,8 @@ Use this mode for embedding raw text strings.
 
 ```json
 {
-    "table_name": "vector_search_3072",
     "embed_model": "gemini-embedding-001",
+    "namespace": "testnamespace",
     "input_mode": "text",
     "input_metadata": [],
     "data": [
@@ -85,7 +88,6 @@ Use this mode for embedding raw text strings.
 
 ```json
 {
-    "pinecone_api_key": "YOUR_PINECONE_API_KEY",
     "index_name": "knowledge-base",
     "embed_model": "gemini-embedding-001",
     "input_mode": "text",
@@ -104,7 +106,7 @@ A single metadata object in `input_metadata` is applied to all generated embeddi
 **Supabase:**
 ```json
 {
-    "table_name": "vector_search_3072",
+    "namespace": "testnamespace",
     "embed_model": "gemini-embedding-001",
     "input_mode": "text",
     "input_metadata": [{
@@ -120,9 +122,26 @@ A single metadata object in `input_metadata` is applied to all generated embeddi
 **Pinecone:**
 ```json
 {
-    "pinecone_api_key": "YOUR_PINECONE_API_KEY",
     "index_name": "knowledge-base",
     "embed_model": "gemini-embedding-001",
+    "input_mode": "text",
+    "input_metadata": [{
+        "source": "philosophy-weekly"
+    }],
+    "data": [
+        "Time is one of the most valuable resources we have...",
+        "Growth doesn't happen in dramatic leaps every day..."
+    ]
+}
+```
+
+Same example but we are inserting in textsearch index also:
+
+```json
+{
+    "index_name": "knowledge-base",
+    "embed_model": "gemini-embedding-001",
+    "lexical_index_name": "textsearch_base",
     "input_mode": "text",
     "input_metadata": [{
         "source": "philosophy-weekly"
@@ -141,7 +160,7 @@ Provide a metadata object for each corresponding item in the `data` array.
 **Supabase:**
 ```json
 {
-    "table_name": "vector_search_2048",
+    "namespace": "testnamespace",
     "embed_model": "jina-embeddings-v4",
     "input_mode": "text",
     "input_metadata": [
@@ -162,7 +181,7 @@ You can also provide data as an array of objects, each containing `text` and an 
 **Supabase:**
 ```json
 {
-    "table_name": "vector_search_1536",
+    "namespace": "testnamespace",
     "embed_model": "embed-v4.0",
     "input_mode": "text",
     "input_metadata": [],
@@ -189,7 +208,7 @@ Use `chunk_config` to automatically split long texts. Metadata is applied to eac
 **Supabase:**
 ```json
 {
-    "table_name": "vector_search_3072",
+    "namespace": "testnamespace",
     "embed_model": "gemini-embedding-001",
     "input_mode": "text",
     "input_metadata": [],
@@ -216,7 +235,7 @@ The `data` array should contain objects with a `url` key. You can also include `
 
 ```json
 {
-    "table_name": "vector_search_2048",
+    "namespace": "testnamespace",
     "embed_model": "jina-embeddings-v4",
     "input_mode": "image",
     "input_metadata": [],
@@ -242,7 +261,7 @@ To upload local files, send a `multipart/form-data` request. The JSON payload is
 * **`json` (text part):**
   ```json
   {
-      "table_name": "vector_search_1536",
+      "namespace": "testnamespace",
       "embed_model": "embed-v4.0",
       "input_mode": "image",
       "input_metadata": [
@@ -268,7 +287,7 @@ Set `include_image_embedding` to `true` to create embeddings for both the extrac
 * **`json` (text part):**
   ```json
   {
-      "table_name": "vector_search_2048",
+      "namespace": "testnamespace",
       "embed_model": "jina-embeddings-v4",
       "input_mode": "file",
       "input_metadata": [],
@@ -287,7 +306,7 @@ Set `include_image_embedding` to `false` (or omit it) to only embed the extracte
 * **`json` (text part):**
   ```json
   {
-      "table_name": "vector_search_3072",
+      "namespace": "testnamespace",
       "embed_model": "gemini-embedding-001",
       "input_mode": "file",
       "input_metadata": [{ "source": "annual-reports" }],
