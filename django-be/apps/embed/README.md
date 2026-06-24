@@ -356,7 +356,7 @@ Deletes specific records from a Supabase vector table by their IDs and updates t
 
 ---
 
-### `POST /embed/delete_supabase_namespace/` *(defined in views but not in urlpatterns)*
+### `POST /embed/delete_supabase_namespace/` 
 
 Deletes an entire namespace and all its records from a Supabase table, and removes the namespace entry from `UserVectorMetadata`.
 
