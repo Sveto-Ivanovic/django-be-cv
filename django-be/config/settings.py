@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.usermanagement.apps.UsermanagementConfig',
     'apps.vector_search.apps.VectorSearchConfig',
     'apps.core.apps.CoreConfig',
+    'apps.evaluate.apps.EvaluateConfig',
     #'django.contrib.admin',
     #'django.contrib.auth',
     'django.contrib.contenttypes',
