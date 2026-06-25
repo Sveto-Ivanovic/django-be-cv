@@ -36,7 +36,7 @@ def fetchLLMFallbacks(keys, task: str, fallbacks_models: List[str] = None, tempe
             if not mistral_api_key:
                 print(f"Mistral API key not found for user {keys.get('user_id')}")
                 continue
-            llm = ChatMistralAI(groq_api_key=mistral_api_key, model= model_name, temperature=temperature, callbacks=[LangchainCallback(keys, model_name, "Minstral", task)])
+            llm = ChatMistralAI(mistral_api_key=mistral_api_key, model= model_name, temperature=temperature, callbacks=[LangchainCallback(keys, model_name, "Minstral", task)])
             llm = structureLLM(llm, structured_output)
             llms.append(llm)
         else:
