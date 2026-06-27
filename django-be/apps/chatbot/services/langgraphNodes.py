@@ -3,14 +3,20 @@ import os
 import sys
 from .classes import State, ResponseFormatterClassifier
 from .fetchLLM import fetchLLM
-from .prompts import classifier_prompt, response_prompt, context, contact_extraction_prompt, gemini_grounding_truth_prompt
+from .prompts import classifier_prompt, response_prompt, context, contact_extraction_prompt, gemini_grounding_truth_prompt, QUERY_ENRICHER_PROMPT
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from .helperFunctions import handleInputAndMemory
 import time
-from .syncToAsyncFunctions import get_chat_item, create_chat_item, save_chat_item, create_message_item, update_chat_history
+from .syncToAsyncFunctions import get_chat_item, create_chat_item, create_message_item, update_chat_history
 from google.ai.generativelanguage_v1beta.types import Tool as GenAITool
 from ..models import ChatHistory, MessageHistory
 from colorama import init, Fore, Style
+from apps.core.utilis.helper_functions.fetch_context_wraper_functions import (
+    fetch_supabase_context,
+    fetch_pinecone_context
+)
+from asgiref.sync import sync_to_async
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -22,12 +28,16 @@ async def fetch_db_memory(state: State):
         logger.info(f"{Fore.GREEN} Entering fetch_db_memory node {Style.RESET_ALL}")
         state["start_time"] = time.time()
         chat_item = None
+
+        print(state["pinecone_metadata"])
+        print(state["supabase_metadata"])
+
         try:
             conv_id = state["conv_id"]
             logger.info(f"Fetching item for chat id:{conv_id}")
 
             # fetch the chat history data
-            time_taken, chat_item = await get_chat_item(ChatHistory, conv_id)
+            time_taken, chat_item = await get_chat_item(ChatHistory, conv_id, state["user_id"])
             state["func_times"]["fetch_chat_memory"] = time_taken
 
             # Memoize the chat history in the state
@@ -39,7 +49,7 @@ async def fetch_db_memory(state: State):
             logger.warning(f"No chat history found for ID: {conv_id}")
             logger.info(f"Creating new item for chat history table.")
 
-            time_taken, chat, chat_id = await create_chat_item(ChatHistory)
+            time_taken, chat, chat_id = await create_chat_item(ChatHistory, state["user_id"])
             state["conv_id"] = chat_id
             state["func_times"]["create_chat_record"] = time_taken
 
@@ -182,7 +192,7 @@ async def response_node(state: State):
         # Init langchain llm class 
         response_llm = fetchLLM(**llm_params)
 
-        systemPrompt = response_prompt.format(context = context, real_time_context = state.get("real_time_context", ""))
+        systemPrompt = response_prompt.format(context = state["context"], real_time_context = state.get("real_time_context", ""))
 
         # Handle memory
         input = handleInputAndMemory(systemPrompt=systemPrompt, memory=state["memory"], input = state["query"]) 
@@ -200,6 +210,49 @@ async def response_node(state: State):
 
     except Exception as e:
         logger.error(f"Error occured in response node: {e}")
+        raise
+
+async def enrich_query_node(state: State):
+    logger.info(f"{Fore.GREEN} Entering enrich_query_node {Style.RESET_ALL}")
+    try:
+        # Load configuration dict for classifier model 
+        config = state["llm_config"].get("agent_response")
+
+        if config is None:
+            raise ValueError("Configuration for reponse agent is not present.")
+        
+        # Input arguments for llm langchain class
+        llm_params = {
+            "state": state,
+            "llm_model": config.get('llm_model'),
+            "task": "rewrite_query",
+            "fallbacks_models": config.get('fallbacks'),
+            "retry": config.get('retry'),
+            "temperature": config.get('temperature'),
+            "thinking_budget": config.get('thinking_budget', None)
+        }
+
+        # Init langchain llm class 
+        response_llm = fetchLLM(**llm_params)
+
+        systemPrompt = QUERY_ENRICHER_PROMPT
+
+        # Handle memory
+        input = handleInputAndMemory(systemPrompt=systemPrompt, memory=state["memory"], input = state["query"]) 
+
+        # Call agent
+        start_time = time.time()
+        response = await response_llm.ainvoke(input)
+        time_taken = time.time() - start_time
+        state["func_times"]["query_rewriter"] = time_taken
+        
+        # Store the response in the state
+        state["rewrite_query"] = response.content
+        logger.info(f"Rewriten query: {response.content}")
+        return state
+
+    except Exception as e:
+        logger.error(f"Error occured in rewrite query node: {e}")
         raise
 
 async def real_time_knowledge_node(state: State):
@@ -301,16 +354,82 @@ async def update_db_memory(state: State):
         })
         
         # Update the chat history in the database
-        time_taken = await update_chat_history(state["conv_id"], chat_record_history, ChatHistory)
+        time_taken = await update_chat_history(state["conv_id"], chat_record_history, ChatHistory,  state["user_id"])
         state["func_times"]["update_chat_history"] = time_taken
 
         logger.info(f"Chat history updated for conv_id={state['conv_id']}")
 
         # Create a message record in the message history
-        time_taken, message = await create_message_item(MessageHistory, state)
+        time_taken, message = await create_message_item(MessageHistory, state,  state["user_id"])
         logger.info(f"Message history created with ID: {message.id}")
         
         return state
     except Exception as e:
         logger.error(f"Error occured in updating chat history: {e}")
+        raise
+
+
+async def fetch_context(state: State):
+    try:
+        supabase_metadata = state["supabase_metadata"]
+        pinecone_metadata = state["pinecone_metadata"]
+        user_id = state["user_id"]
+
+        if supabase_metadata:
+            namespace = supabase_metadata.get("namespace")
+            top_k = supabase_metadata.get("top_k", 5)
+            mode = supabase_metadata.get("mode", "semantic")
+            table_name = supabase_metadata.get("table_name")
+            model = supabase_metadata.get("model")
+            semantic_search_mode = supabase_metadata.get("semantic_search_mode", "cosine")
+            nearest_neighbor_settings = supabase_metadata.get("nearest_neighbor_settings", {})
+            get_all_neighbor_chunks = nearest_neighbor_settings.get("get_all_neighbor_chunks", False)
+            nearest_chunks_n = nearest_neighbor_settings.get("nearest_chunks_n", 0)
+            nearest_page_or_array_members_n = nearest_neighbor_settings.get("nearest_page_or_array_members_n", 0)
+
+
+            context, array_context = await sync_to_async(fetch_supabase_context)(
+                state["rewrite_query"] or state["query"],
+                namespace,
+                table_name,
+                user_id,
+                top_k,
+                mode,
+                model,
+                semantic_search_mode,
+                get_all_neighbor_chunks,
+                nearest_chunks_n,
+                nearest_page_or_array_members_n
+            )
+            state["context"] = context
+
+        elif pinecone_metadata:
+            top_k = pinecone_metadata.get("top_k", 5)
+            index_name = pinecone_metadata.get("index_name")
+            index_name_lexical = pinecone_metadata.get("index_name_lexical", None)
+            model = pinecone_metadata.get("model")
+            mode = pinecone_metadata.get("mode", "semantic")
+            nearest_neighbor_settings = pinecone_metadata.get("nearest_neighbor_settings", {})
+            get_all_neighbor_chunks = nearest_neighbor_settings.get("get_all_neighbor_chunks", False)
+            nearest_chunks_n = nearest_neighbor_settings.get("nearest_chunks_n", 0)
+            nearest_page_or_array_members_n = nearest_neighbor_settings.get("nearest_page_or_array_members_n", 0)
+
+            context, array_context = await sync_to_async(fetch_pinecone_context)(
+                state["rewrite_query"] or state["query"],
+                index_name,
+                index_name_lexical,
+                top_k,
+                mode,
+                model,
+                state.get("user_api_keys", {}),
+                get_all_neighbor_chunks,
+                nearest_chunks_n,
+                nearest_page_or_array_members_n
+            )
+            state["context"] = context
+
+        return state
+
+    except Exception as e:
+        logger.error(f"Error occured in fetch_context node: {e}")
         raise

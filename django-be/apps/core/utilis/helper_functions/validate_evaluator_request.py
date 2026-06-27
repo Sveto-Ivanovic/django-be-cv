@@ -7,10 +7,10 @@ def validate_request_for_evaluation(data_to_evaluate):
         raise ValueError("All objects must have a 'question' property.")
 
     # Metrics that don't need reference_answer
-    metrics = ["faithfulness", "answer_relevance"]
+    metrics = ["faithfulness", "answer_relevance", "context_recall"]
 
     # Metrics that require reference_answer
     if all_has_reference:
-        metrics += ["answer_correctness", "context_recall"]
+        metrics += ["answer_correctness"]
 
     return metrics

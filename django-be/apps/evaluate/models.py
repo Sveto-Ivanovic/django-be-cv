@@ -13,14 +13,19 @@ class TestCaseDB(models.Model):
     created_at = models.DateTimeField(auto_now=True)
 
     user_input = models.TextField(blank=True, null=True)
-    retrieved_contexts = JSONField(blank=True, null=True)
+    retrieved_context_text = models.TextField(blank=True, null=True)
+    retrieved_context_array = JSONField(blank=True, null=True)
     response = models.TextField(blank=True, null=True)
     reference = models.TextField(blank=True, null=True)
 
     faithfulness = models.FloatField(blank=True, null=True)
+    faithfulness_explanation =  models.TextField(blank=True, null=True)
     answer_relevancy = models.FloatField(blank=True, null=True)
+    answer_relevancy_explanation =  models.TextField(blank=True, null=True)
     answer_correctness = models.FloatField(blank=True, null=True)
+    answer_correctness_explanation =  models.TextField(blank=True, null=True)
     context_recall = models.FloatField(blank=True, null=True)
+    context_recall_explanation =  models.TextField(blank=True, null=True)
 
 
 

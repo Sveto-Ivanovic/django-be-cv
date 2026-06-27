@@ -17,7 +17,10 @@ from apps.core.utilis.helper_functions.fetch_context_wraper_functions import (
     fetch_pinecone_context
 )
 from apps.core.utilis.helper_functions.prompts import (
-    LLM_AGENT_PROMPT
+    LLM_AGENT_PROMPT, SYSTEM_PROMPT_NO_REFERENCE, SYSTEM_PROMPT_WITH_REFERENCE, EVAL_PROMPT_NO_REFERENCE, EVAL_PROMPT_WITH_REFERENCE
+)
+from apps.core.utilis.helper_functions.classes import (
+    RAGEvaluationResult, RAGEvaluationResultReference
 )
 from apps.core.utilis.helper_functions.fetch_llm import (
     fetchLLM
@@ -34,8 +37,24 @@ from groq import Groq
 import google.genai as genai
 from .models import TestCaseDB, TestCaseDBAggregate
 from django.utils import timezone
+from django.core import serializers
 
 load_dotenv(override=True)
+
+import json
+import uuid
+from datetime import datetime, date
+from decimal import Decimal
+
+class ExtendedEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='POST', block=True)
@@ -87,9 +106,9 @@ def call_validation_text(request):
                 )
             print("Fetched keys successfully")
 
-            # fetching context segment
+            ####### Fetching context segment
             print("Begging context fetching")
-            if supabase_metadata is not None:
+            if supabase_metadata:
                 
                 namespace = supabase_metadata.get("namespace")
                 top_k = supabase_metadata.get("top_k", 5)
@@ -111,7 +130,7 @@ def call_validation_text(request):
                 for element in data_to_evaluate:
                     question = element.get("question")
 
-                    context = fetch_supabase_context(
+                    context, array_context = fetch_supabase_context(
                         question,
                         namespace,
                         table_name,
@@ -126,8 +145,9 @@ def call_validation_text(request):
                     )
 
                     element["context"] = context
+                    element["array_context"] = array_context
 
-            if pinecone_metadata is not None: 
+            elif pinecone_metadata: 
 
                 top_k = pinecone_metadata.get("top_k", 5)
                 index_name = pinecone_metadata.get("index_name")
@@ -149,7 +169,7 @@ def call_validation_text(request):
                 for element in data_to_evaluate:
                     question = element.get("question")
 
-                    context = fetch_pinecone_context(
+                    context, array_context = fetch_pinecone_context(
                         question,
                         index_name,
                         index_name_lexical,
@@ -163,127 +183,187 @@ def call_validation_text(request):
                     )
 
                     element["context"] = context
+                    element["array_context"] = array_context
 
-            # Question answering segment
+            ###### Question answering segment
             print("Getting answers")
 
             llm_params = {
-            "keys": keys,
-            "llm_model": llm_model,
-            "task": "qa",
-            "fallbacks_models": [],
-            "retry": 3,
-            "temperature": 0.1,
-            "thinking_budget": 0
-            }
-
+                "keys": keys,
+                "llm_model": llm_model,
+                "task": "qa",
+                "fallbacks_models": [],
+                "retry": 3,
+                "temperature": 0.1,
+                "thinking_budget": 0
+                }
             # Init langchain llm class 
             qa_llm = fetchLLM(**llm_params)
-
 
             for element in data_to_evaluate:
                 question = element.get("question")
                 context = element.get("context")
 
                 formated_prompt =LLM_AGENT_PROMPT.format(
-                        context="Your retrieved context goes here",
-                        question="Your user question goes here"
+                        context=context,
+                        question=question
                     )
                 
 
                 messages = [
-                    SystemMessage(content=formated_prompt)
+                    HumanMessage(content=formated_prompt)
                 ]
-
                 response = qa_llm.invoke(messages)
 
+                print("Answer: ", response.content)
                 element["answer"] = response.content
 
-            
-
-            # part for the evaluation
+            ###### Part for the evaluation
             print("Begging evaluation proces.") 
             num_of_elements = len(data_to_evaluate)
 
-            # if "gemini" in eval_model:
-            #     genai.configure(api_key=keys.get("gemini_api_key"))
-            #     client = genai.GenerativeModel(eval_model)
-            #     eval_llm = llm_factory(eval_model, provider="google", client=client)
-            # else:
-            #     client = Groq(api_key=keys.get("groq_api_key"))
-            #     eval_llm = llm_factory(eval_model, provider="groq", client=client)
 
+            llm_params = {
+                "keys": keys,
+                "llm_model": eval_model,
+                "task": "evaluation",
+                "fallbacks_models": [],
+                "retry": 3,
+                "temperature": 0.1,
+                "thinking_budget": 0,
+                "structured_output": (
+                        RAGEvaluationResultReference
+                        if "answer_correctness" in metrics
+                        else RAGEvaluationResult
+                    )
+                }
 
+            # Init langchain llm class 
+            eval_llm = fetchLLM(**llm_params)
     
-            # dataset=[]
-            # for i, element in enumerate(data_to_evaluate):
-            #     print(f"Entering in dataset {i}/{num_of_elements}")
-            #     dataset.append({
-            #         "user_input": element.get("question"),
-            #         "reference":  element.get("reference_answer"),
-            #         "retrieved_contexts": [element.get("context")],
-            #         "response":  element.get("answer"),
-            #     })
+            results=[]
+            for i, element in enumerate(data_to_evaluate):
+                print(f"Evaluating in dataset {i}/{num_of_elements}")
+                print(metrics)
+                if "answer_correctness" in metrics:
+                    message = [
+                        SystemMessage(content=SYSTEM_PROMPT_WITH_REFERENCE ),
+                        HumanMessage(content=EVAL_PROMPT_WITH_REFERENCE.format(
+                            user_input= element.get("question"),
+                            reference=  element.get("reference_answer"),
+                            retrieved_contexts= element.get("context"),
+                            response=  element.get("answer"),
+                        ))
+                    ]
+                else:
+                    message = [
+                        SystemMessage(content=SYSTEM_PROMPT_NO_REFERENCE ),
+                        HumanMessage(content=EVAL_PROMPT_NO_REFERENCE.format(
+                            user_input= element.get("question"),
+                            retrieved_contexts= element.get("context"),
+                            response=  element.get("answer"),
+                        ))
+                    ]
 
-            # evaluation_dataset = EvaluationDataset.from_list(dataset)
-            # result = evaluate(dataset=evaluation_dataset,metrics=metrics,llm=eval_llm)
+                response = eval_llm.invoke(message)
 
-            # aggregated_results = result.to_pandas().mean(numeric_only=True).to_dict()
-            # list_of_results = result.to_pandas().to_dict(orient="records")
 
-            # time_created = timezone.now()
+                print(response)
 
-            # obj = TestCaseDBAggregate.objects.create(
-            #     test_case_name = testcase_name,
-            #     user_id = user_id,
-            #     qa_model_used = llm_model,
-            #     validation_model_used = eval_model,
-            #     aggregate_metadata = aggregated_results,
-            #     created_at = time_created,
-            #     number_of_testcases = len(list_of_results)
-            # )
-            # record_id = obj.id
+                results.append({
+                    "user_input": element.get("question"),
+                    "reference": element.get("reference_answer"),
+                    "retrieved_context_text": element.get("context"),
+                    "response": element.get("answer"),
+                 "retrieved_context_array": json.dumps(element.get("array_context"), cls=ExtendedEncoder),
 
-            # allowed_fields = {"user_input", "retrieved_contexts", "response", "reference",
-            #       "faithfulness", "answer_relevancy", "answer_correctness", "context_recall"}
-            # records_to_save = []
-            # for item in list_of_results:
+
+                    "faithfulness": getattr(getattr(response, "faithfulness", None), "score", None),
+                    "faithfulness_explanation": getattr(getattr(response, "faithfulness", None), "reasoning", None),
+
+                    "answer_relevancy": getattr(getattr(response, "answer_relevancy", None), "score", None),
+                    "answer_relevancy_explanation": getattr(getattr(response, "answer_relevancy", None), "reasoning", None),
+
+                    "answer_correctness": getattr(getattr(response, "answer_correctness", None), "score", None),
+                    "answer_correctness_explanation": getattr(getattr(response, "answer_correctness", None), "reasoning", None),
+
+                    "context_recall": getattr(getattr(response, "context_recall", None), "score", None),
+                    "context_recall_explanation": getattr(getattr(response, "context_recall", None), "reasoning", None),
+                })
+
+
+            # Aggregating numeric scores across all results
+            numeric_keys = ["faithfulness", "answer_relevancy", "answer_correctness", "context_recall"]
+            aggregated_results = {}
+
+            for key in numeric_keys:
+                valid_scores = [r[key] for r in results if r.get(key) is not None]
                 
-            #     filtered = { k:v for k, v in item.items() if k in allowed_fields}
+                if valid_scores:
+                    aggregated_results[key] = sum(valid_scores) / len(valid_scores)
 
-            #     records_to_save.append(
-            #         TestCaseDB(
-            #             test_case_name = testcase_name,
-            #             user_id = user_id,
-            #             qa_model_used = llm_model,
-            #             validation_model_used = eval_model,
-            #             aggregate_metadata = aggregated_results,
-            #             created_at = time_created,
-            #             aggregate_id = record_id,
-            #             **filtered
-            #             )
-            #     )
 
-            # TestCaseDB.objects.bulk_create(records_to_save)
+            time_created = timezone.now()
 
-            # log_user_action(usr_obj, f"User completed evaluation.", "evaluate_qa")
+            obj = TestCaseDBAggregate.objects.create(
+                test_case_name=testcase_name,
+                user_id=user_id,
+                qa_model_used=llm_model,
+                validation_model_used=eval_model,
+                aggregate_metadata=aggregated_results,
+                created_at=time_created,
+                number_of_testcases=len(results)
+            )
+            record_id = obj.id
 
-            # response = {
-            #     "status": "success",
-            #     "response": "Successfully evaluated the dataset.",
-            #     "aggregate": aggregated_results,
-            #     "records": list_of_results,
-            #     "total": len(list_of_results),
-            #     "aggregate_id": str(record_id),
-            # }
+            print(record_id)
+            records_to_save = []
+            for item in results:
+                
+                data = {
+                    "test_case_name": testcase_name,
+                    "user_id": user_id,
+                    "qa_model_used": llm_model,
+                    "validation_model_used": eval_model,
+                    "aggregate_metadata": aggregated_results,
+                    "created_at": time_created,
+                    "aggregate_id": record_id,
+                    **item,
+                }
 
-            return JsonResponse({"status": "success", "response": {}}, status=200)
+                records_to_save.append(
+                    TestCaseDB(
+                        test_case_name=testcase_name,
+                        user_id=user_id,
+                        qa_model_used=llm_model,
+                        validation_model_used=eval_model,
+                        aggregate_metadata=aggregated_results,
+                        created_at=time_created,
+                        aggregate_id=record_id,
+                        **item
+                    )
+                )
+
+            TestCaseDB.objects.bulk_create(records_to_save)
+
+            log_user_action(usr_obj, f"User completed evaluation.", "evaluate_qa")
+
+            response = {
+                "status": "success",
+                "response": "Successfully evaluated the dataset.",
+                "aggregate": aggregated_results,
+                "records": results,
+                "total": len(results),
+                "aggregate_id": str(record_id),
+            }
+
+            return JsonResponse({"status": "success", "response": response}, status=200)
         
         except json.JSONDecodeError:
             print("Error decoding JSON")
             return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
         except Exception as e:
-            print(f"Error occured in delete_pinecone_index: {str(e)}")
+            print(f"Error occured in call_validation_text: {str(e)}")
             return JsonResponse({"status": "error", "response": str(e)}, status=401)
 
    
@@ -377,7 +457,7 @@ def call_validation_json(request):
                 )
             print("Fetched keys successfully")
 
-            # fetching context
+            ####### Fetching context
             get_all_neighbor_chunks       = nearest_neighbor_settings.get("get_all_neighbor_chunks", False)
             nearest_chunks_n              = nearest_neighbor_settings.get("nearest_chunks_n", 0)
             nearest_page_or_array_members_n = nearest_neighbor_settings.get("nearest_page_or_array_members_n", 0)
@@ -416,7 +496,7 @@ def call_validation_json(request):
                         nearest_page_or_array_members_n
                     )
 
-            # QA based on context
+            ###### QA based on context
             print("Getting answers")
             llm_params = {
                 "keys": keys,
@@ -438,90 +518,270 @@ def call_validation_json(request):
                     question=question
                 )
 
-                messages = [SystemMessage(content=formatted_prompt)]
+                messages = [HumanMessage(content=formatted_prompt)]
                 response = qa_llm.invoke(messages)
                 element["answer"] = response.content
 
-            # eval
-            print("Beginning evaluation process.")
+            ###### Part for the evaluation
+            print("Begging evaluation proces.") 
             num_of_elements = len(data_to_evaluate)
 
-            # if "gemini" in eval_model:
-            #     genai.configure(api_key=keys.get("gemini_api_key"))
-            #     client   = genai.GenerativeModel(eval_model)
-            #     eval_llm = llm_factory(eval_model, provider="google", client=client)
-            # else:
-            #     client   = Groq(api_key=keys.get("groq_api_key"))
-            #     eval_llm = llm_factory(eval_model, provider="groq", client=client)
 
-            # dataset = []
-            # for i, element in enumerate(data_to_evaluate):
-            #     print(f"Entering dataset {i + 1}/{num_of_elements}")
-            #     dataset.append({
-            #         "user_input": element.get("question"),
-            #         "reference": element.get("reference_answer"),
-            #         "retrieved_contexts": [element.get("context")],
-            #         "response": element.get("answer")
-            #     })
+            llm_params = {
+                "keys": keys,
+                "llm_model": eval_model,
+                "task": "evaluation",
+                "fallbacks_models": [],
+                "retry": 3,
+                "temperature": 0.1,
+                "thinking_budget": 0,
+                "structured_output": (
+                        RAGEvaluationResultReference
+                        if "answer_correctness" in metrics
+                        else RAGEvaluationResult
+                    )
+                }
 
-            # evaluation_dataset = EvaluationDataset.from_list(dataset)
-            # result             = evaluate(dataset=evaluation_dataset, metrics=metrics, llm=eval_llm)
+            # Init langchain llm class 
+            eval_llm = fetchLLM(**llm_params)
+    
+            results=[]
+            for i, element in enumerate(data_to_evaluate):
+                print(f"Evaluating in dataset {i}/{num_of_elements}")
+                 
+                if "answer_correctness" in metrics:
+                    message = [
+                        SystemMessage(content=SYSTEM_PROMPT_WITH_REFERENCE ),
+                        HumanMessage(content=EVAL_PROMPT_WITH_REFERENCE.format(
+                            user_input= element.get("question"),
+                            reference=  element.get("reference_answer"),
+                            retrieved_contexts= element.get("context"),
+                            response=  element.get("answer"),
+                        ))
+                    ]
+                else:
+                    message = [
+                        SystemMessage(content=SYSTEM_PROMPT_NO_REFERENCE ),
+                        HumanMessage(content=EVAL_PROMPT_NO_REFERENCE.format(
+                            user_input= element.get("question"),
+                            retrieved_contexts= element.get("context"),
+                            response=  element.get("answer"),
+                        ))
+                    ]
 
-            # aggregated_results = result.to_pandas().mean(numeric_only=True).to_dict()
-            # list_of_results    = result.to_pandas().to_dict(orient="records")
+                response = eval_llm.invoke(message)
+                
+                results.append({
+                    "user_input": element.get("question"),
+                    "reference": element.get("reference_answer"),
+                    "retrieved_contexts": [element.get("context")],
+                    "response": element.get("answer"),
+                    "retrieved_context_array": json.dumps(element.get("array_context"), cls=ExtendedEncoder),
 
-            # time_created = timezone.now()
+                    "faithfulness": getattr(getattr(response, "faithfulness", None), "score", None),
+                    "faithfulness_explanation": getattr(getattr(response, "faithfulness", None), "reasoning", None),
 
-            # obj = TestCaseDBAggregate.objects.create(
-            #     test_case_name = testcase_name,
-            #     user_id = user_id,
-            #     qa_model_used = llm_model,
-            #     validation_model_used = eval_model,
-            #     aggregate_metadata = aggregated_results,
-            #     created_at = time_created,
-            #     number_of_testcases = len(list_of_results)
-            # )
-            # record_id = obj.id
+                    "answer_relevancy": getattr(getattr(response, "answer_relevancy", None), "score", None),
+                    "answer_relevancy_explanation": getattr(getattr(response, "answer_relevancy", None), "reasoning", None),
 
-            # allowed_fields = {
-            #     "user_input", "retrieved_contexts", "response", "reference",
-            #     "faithfulness", "answer_relevancy", "answer_correctness", "context_recall"
-            # }
-            # records_to_save = []
-            # for item in list_of_results:
-            #     filtered = {k: v for k, v in item.items() if k in allowed_fields}
-            #     records_to_save.append(
-            #         TestCaseDB(
-            #             test_case_name  = testcase_name,
-            #             user_id = user_id,
-            #             qa_model_used = llm_model,
-            #             validation_model_used = eval_model,
-            #             aggregate_metadata = aggregated_results,
-            #             created_at = time_created,
-            #             aggregate_id = record_id,
-            #             **filtered
-            #         )
-            #     )
+                    "answer_correctness": getattr(getattr(response, "answer_correctness", None), "score", None),
+                    "answer_correctness_explanation": getattr(getattr(response, "answer_correctness", None), "reasoning", None),
 
-            # TestCaseDB.objects.bulk_create(records_to_save)
-            # log_user_action(usr_obj, "User completed evaluation.", "evaluate_qa")
+                    "context_recall": getattr(getattr(response, "context_recall", None), "score", None),
+                    "context_recall_explanation": getattr(getattr(response, "context_recall", None), "reasoning", None),
+                })
 
-            # response = {
-            #     "status": "success",
-            #     "response": "Successfully evaluated the dataset.",
-            #     "aggregate": aggregated_results,
-            #     "records": list_of_results,
-            #     "total": len(list_of_results),
-            #     "aggregate_id": str(record_id),
-            # }
 
-            return JsonResponse({"status": "success", "response": {}}, status=200)
+            # Aggregating numeric scores across all results
+            numeric_keys = ["faithfulness", "answer_relevancy", "answer_correctness", "context_recall"]
+            aggregated_results = {}
+
+            for key in numeric_keys:
+                valid_scores = [r[key] for r in results if r.get(key) is not None]
+                
+                if valid_scores:
+                    aggregated_results[key] = sum(valid_scores) / len(valid_scores)
+
+
+            time_created = timezone.now()
+
+            obj = TestCaseDBAggregate.objects.create(
+                test_case_name=testcase_name,
+                user_id=user_id,
+                qa_model_used=llm_model,
+                validation_model_used=eval_model,
+                aggregate_metadata=aggregated_results,
+                created_at=time_created,
+                number_of_testcases=len(results)
+            )
+            record_id = obj.id
+
+        
+            records_to_save = []
+            for item in results:
+                
+                records_to_save.append(
+                    TestCaseDB(
+                        test_case_name=testcase_name,
+                        user_id=user_id,
+                        qa_model_used=llm_model,
+                        validation_model_used=eval_model,
+                        aggregate_metadata=aggregated_results,
+                        created_at=time_created,
+                        aggregate_id=record_id,
+                        **item
+                    )
+                )
+
+            TestCaseDB.objects.bulk_create(records_to_save)
+
+            log_user_action(usr_obj, f"User completed evaluation.", "evaluate_qa")
+
+            response = {
+                "status": "success",
+                "response": "Successfully evaluated the dataset.",
+                "aggregate": aggregated_results,
+                "records": results,
+                "total": len(results),
+                "aggregate_id": str(record_id),
+            }
+
+            return JsonResponse({"status": "success", "response": response}, status=200)
 
         except json.JSONDecodeError:
             print("Error decoding JSON")
             return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
         except Exception as e:
-            print(f"Error occurred in call_validation_text: {str(e)}")
+            print(f"Error occurred in call_validation_json: {str(e)}")
             return JsonResponse({"status": "error", "response": str(e)}, status=401)
 
     return HttpResponse("Invalid request method. Please use POST to send a request.")
+
+
+
+@csrf_exempt
+@ratelimit(key='ip', rate='10/m', method='GET', block=True)
+def get_eval_aggregates(request):
+    if request.method=="GET":
+        try:
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400) 
+            
+            data_response = TestCaseDBAggregate.objects.filter(user_id=user_id).values("id", "test_case_name", "qa_model_used", "validation_model_used", "aggregate_metadata", "created_at", "number_of_testcases") 
+            response = list(data_response)
+
+            log_user_action(usr_obj, f"User Fetched List of Aggregate evals", "fetch_supabase_tables")
+          
+            return JsonResponse({"status": "sucess", "response":response}, status=200)
+        
+        except json.JSONDecodeError:
+            print("Error decoding JSON")
+            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+        except Exception as e:
+            print(f"Error occured in get_pinecone_indexes: {str(e)}")
+            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+
+   
+    return HttpResponse("Invalid request method. Please use GET to send a request.")
+
+@csrf_exempt
+@ratelimit(key='ip', rate='10/m', method='GET', block=True)
+def get_eval_testcases(request):
+    if request.method == "GET":
+        try:
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+
+            aggregate_id = request.GET.get("aggregate_id")
+            if not aggregate_id:
+                return JsonResponse({"status": "error", "response": "aggregate_id is required"}, status=400)
+
+            data_response = TestCaseDB.objects.filter(
+                user_id=user_id,
+                aggregate_id=aggregate_id
+            ).values(
+                "id", "aggregate_id", "test_case_name", "qa_model_used", "validation_model_used",
+                "aggregate_metadata", "created_at", "user_input", "retrieved_context_text",
+                "retrieved_context_array", "response", "reference",
+                "faithfulness", "faithfulness_explanation",
+                "answer_relevancy", "answer_relevancy_explanation",
+                "answer_correctness", "answer_correctness_explanation",
+                "context_recall", "context_recall_explanation"
+            )
+            response = list(data_response)
+
+            log_user_action(usr_obj, f"User Fetched List of Test Cases for aggregate {aggregate_id}", "fetch_testcases")
+
+            return JsonResponse({"status": "success", "response": response}, status=200)
+
+        except json.JSONDecodeError:
+            print("Error decoding JSON")
+            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+        except Exception as e:
+            print(f"Error occurred in get_eval_testcases: {str(e)}")
+            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+
+    return HttpResponse("Invalid request method. Please use GET to send a request.")
+
+
+@csrf_exempt
+@ratelimit(key='ip', rate='10/m', method='DELETE', block=True)
+def delete_eval_aggregate(request):
+    if request.method == "POST":
+        try:
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+            else:
+                data = request.POST
+
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+
+            aggregate_id = data.get("aggregate_id")
+            if not aggregate_id:
+                return JsonResponse({"status": "error", "response": "aggregate_id is required"}, status=400)
+
+            aggregate = TestCaseDBAggregate.objects.filter(id=aggregate_id, user_id=user_id).first()
+            if not aggregate:
+                return JsonResponse({"status": "error", "response": "Aggregate not found or unauthorized"}, status=404)
+
+            aggregate.delete()
+
+            test_cases = TestCaseDB.objects.filter(aggregate_id=aggregate_id, user_id=user_id)
+            test_cases.delete()
+
+
+            log_user_action(usr_obj, f"User Deleted Aggregate {aggregate_id}", "delete_aggregate")
+
+            return JsonResponse({"status": "success", "response": f"Aggregate {aggregate_id} deleted successfully"}, status=200)
+
+        except json.JSONDecodeError:
+            print("Error decoding JSON")
+            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+        except Exception as e:
+            print(f"Error occurred in delete_eval_aggregate: {str(e)}")
+            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+
+    return HttpResponse("Invalid request method. Please use DELETE to send a request.")
+

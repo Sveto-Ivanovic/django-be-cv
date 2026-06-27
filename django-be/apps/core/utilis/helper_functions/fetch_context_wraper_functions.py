@@ -25,8 +25,6 @@ from apps.core.utilis.helper_functions.nearest_chunk_fetcher import (
 
 
 
-
-
 def fetch_supabase_context(
                         question,
                         namespace,
@@ -38,7 +36,8 @@ def fetch_supabase_context(
                         semantic_search_mode,
                         get_all_neighbor_chunks,
                         nearest_chunks_n,
-                        nearest_page_or_array_members_n
+                        nearest_page_or_array_members_n,
+                        keys=None
                     ):
     
     if mode not in ["semantic", "lexical", "hybrid"]:
@@ -53,12 +52,13 @@ def fetch_supabase_context(
     else:
         raise ValueError("Invalid table name or model provided.")
 
-    keys = get_user_api_keys(user_id)
-    if not keys:
-        return JsonResponse(
-            {"status": "error", "response": "No API keys found for the user."},
-            status=404,
-        )
+    if keys is None:
+        keys = get_user_api_keys(user_id)
+        if not keys:
+            return JsonResponse(
+                {"status": "error", "response": "No API keys found for the user."},
+                status=404,
+            )
 
     if mode == "semantic":
         try:

@@ -279,7 +279,6 @@ PUT /user/update_user_keys/
 
 ```json
 {
-  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
   "key_type": "gemini_api_key",
   "api_key": "AIza..."
 }
@@ -330,7 +329,6 @@ PUT /user/remove_key/
 
 ```json
 {
-  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
   "key_type": "gemini_api_key"
 }
 ```

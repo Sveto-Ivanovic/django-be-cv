@@ -6,6 +6,7 @@ The Chatbot API provides an AI-powered conversational endpoint that supports:
 
 * Multi-turn conversation memory
 * Conversation persistence
+* Context retrieval from Supabase and Pinecone vector stores
 * Contact information extraction
 * Prompt injection detection
 * Message and conversation limits
@@ -70,7 +71,8 @@ POST /chatbot/call_chatbot/
 
 ```json
 {
-  "question": "What is Retrieval Augmented Generation?"
+  "question": "What is Retrieval Augmented Generation?",
+  "llm_model": "gemini-2.5-flash"
 }
 ```
 
@@ -79,7 +81,51 @@ POST /chatbot/call_chatbot/
 ```json
 {
   "question": "Can you give me an example?",
-  "conv_id": "d8f69ca9-54ef-43db-8b64-fd67a2d3f95a"
+  "conv_id": "d8f69ca9-54ef-43db-8b64-fd67a2d3f95a",
+  "llm_model": "gemini-2.5-flash"
+}
+```
+
+### With Context Retrieval (Supabase)
+
+```json
+{
+  "question": "Summarize the uploaded document.",,
+  "llm_model": "gemini-2.5-flash"
+  "supabase_metadata": {
+    "namespace": "my-namespace",
+    "table_name": "documents",
+    "model": "text-embedding-3-small",
+    "top_k": 5,
+    "mode": "semantic",
+    "semantic_search_mode": "cosine",
+    "nearest_neighbor_settings": {
+      "get_all_neighbor_chunks": false,
+      "nearest_chunks_n": 2,
+      "nearest_page_or_array_members_n": 1
+    }
+  }
+}
+```
+
+### With Context Retrieval (Pinecone)
+
+```json
+{
+  "question": "What does the policy say about refunds?",,
+  "llm_model": "gemini-2.5-flash"
+  "pinecone_metadata": {
+    "index_name": "my-index",
+    "index_name_lexical": "my-index-lexical",
+    "model": "text-embedding-3-small",
+    "top_k": 5,
+    "mode": "hybrid",
+    "nearest_neighbor_settings": {
+      "get_all_neighbor_chunks": true,
+      "nearest_chunks_n": 3,
+      "nearest_page_or_array_members_n": 2
+    }
+  }
 }
 ```
 
@@ -87,10 +133,51 @@ POST /chatbot/call_chatbot/
 
 ## Request Parameters
 
-| Field    | Type   | Required | Description              |
-| -------- | ------ | -------- | ------------------------ |
-| question | string | Yes      | User message             |
-| conv_id  | string | No       | Existing conversation ID |
+| Field              | Type   | Required | Description                                    |
+| ------------------ | ------ | -------- | ---------------------------------------------- |
+| question           | string | Yes      | User message                                   |
+| conv_id            | string | No       | Existing conversation ID                       |
+| supabase_metadata  | object | No       | Config for Supabase vector store retrieval     |
+| pinecone_metadata  | object | No       | Config for Pinecone vector store retrieval     |
+
+---
+
+## supabase_metadata Fields
+
+| Field                    | Type    | Required | Default    | Description                                           |
+| ------------------------ | ------- | -------- | ---------- | ----------------------------------------------------- |
+| namespace                | string  | Yes      | —          | Namespace to scope the search                         |
+| table_name               | string  | Yes      | —          | Supabase table to query                               |
+| model                    | string  | Yes      | —          | Embedding model name                                  |
+| top_k                    | integer | No       | `5`        | Number of top results to retrieve                     |
+| mode                     | string  | No       | `semantic` | Retrieval mode: `semantic`, `keyword`, or `hybrid`    |
+| semantic_search_mode     | string  | No       | `cosine`   | Similarity metric: `cosine`, `l2`, or `ip`            |
+| nearest_neighbor_settings| object  | No       | `{}`       | Settings for chunk expansion (see below)              |
+
+---
+
+## pinecone_metadata Fields
+
+| Field                    | Type    | Required | Default    | Description                                           |
+| ------------------------ | ------- | -------- | ---------- | ----------------------------------------------------- |
+| index_name               | string  | Yes      | —          | Primary Pinecone index name                           |
+| index_name_lexical       | string  | No       | `null`     | Lexical index name for hybrid search                  |
+| model                    | string  | Yes      | —          | Embedding model name                                  |
+| top_k                    | integer | No       | `5`        | Number of top results to retrieve                     |
+| mode                     | string  | No       | `semantic` | Retrieval mode: `semantic`, `keyword`, or `hybrid`    |
+| nearest_neighbor_settings| object  | No       | `{}`       | Settings for chunk expansion (see below)              |
+
+---
+
+## nearest_neighbor_settings Fields
+
+Applies to both `supabase_metadata` and `pinecone_metadata`.
+
+| Field                          | Type    | Default | Description                                                    |
+| ------------------------------ | ------- | ------- | -------------------------------------------------------------- |
+| get_all_neighbor_chunks        | boolean | `false` | Whether to fetch surrounding chunks around each result         |
+| nearest_chunks_n               | integer | `0`     | Number of adjacent chunks to include on each side              |
+| nearest_page_or_array_members_n| integer | `0`     | Number of adjacent page or array members to include            |
 
 ---
 
@@ -101,7 +188,7 @@ curl -X POST http://localhost:8000/chatbot/call_chatbot/ \
 -H "Authorization: Bearer <ACCESS_TOKEN>" \
 -H "Content-Type: application/json" \
 -d '{
-    "question":"What is Retrieval Augmented Generation?"
+    "question": "What is Retrieval Augmented Generation?"
 }'
 ```
 
@@ -122,7 +209,7 @@ Status: `200 OK`
 
 ---
 
-## Error Response
+## Error Responses
 
 ### Authentication Error
 
@@ -133,19 +220,11 @@ Status: `200 OK`
 }
 ```
 
-Status:
-
-```http
-401 Unauthorized
-```
+Status: `401 Unauthorized`
 
 ---
 
 ### Missing User API Keys
-
-```http
-404 Not Found
-```
 
 ```json
 {
@@ -153,6 +232,8 @@ Status:
   "message": "No API keys found for the provided user ID."
 }
 ```
+
+Status: `404 Not Found`
 
 ---
 
@@ -165,11 +246,7 @@ Status:
 }
 ```
 
-Status:
-
-```http
-400 Bad Request
-```
+Status: `400 Bad Request`
 
 ---
 
@@ -213,6 +290,8 @@ Every request passes through the following workflow:
 ```text
 Load Conversation Memory
           ↓
+Fetch Context (Supabase / Pinecone)
+          ↓
 Classify User Query
           ↓
 Check Prompt Injection
@@ -232,11 +311,39 @@ Return Response
 
 ---
 
+# Context Retrieval (`fetch_context`)
+
+Before generating a response, the pipeline optionally retrieves relevant context from one or both of the supported vector stores: **Supabase** and **Pinecone**. This is controlled by the `supabase_metadata` and `pinecone_metadata` fields in the request body.
+
+If both are provided, each store is queried independently and the retrieved context is made available to the response generation step.
+
+## Supabase Retrieval
+
+When `supabase_metadata` is present, the system performs a vector search against the specified Supabase table. Supported retrieval modes are `semantic`, `keyword`, and `hybrid`. The similarity metric for semantic search is configurable via `semantic_search_mode` (`cosine`, `l2`, or `ip`).
+
+## Pinecone Retrieval
+
+When `pinecone_metadata` is present, the system queries the specified Pinecone index. For hybrid search, an optional `index_name_lexical` field can point to a secondary lexical index. The user's API keys are forwarded automatically.
+
+## Chunk Expansion
+
+Both retrieval paths support `nearest_neighbor_settings` to expand results beyond the top-k matches by pulling in surrounding chunks. This is useful when documents are split into small fragments and surrounding context improves answer quality.
+
+```json
+"nearest_neighbor_settings": {
+  "get_all_neighbor_chunks": true,
+  "nearest_chunks_n": 2,
+  "nearest_page_or_array_members_n": 1
+}
+```
+
+Setting `get_all_neighbor_chunks` to `true` activates expansion. `nearest_chunks_n` controls how many adjacent chunks are included, and `nearest_page_or_array_members_n` controls how many adjacent page or array-level members are fetched.
+
+---
+
 # Query Classification
 
 The chatbot automatically classifies user messages.
-
-Possible classifications include:
 
 | Classification      | Purpose                            |
 | ------------------- | ---------------------------------- |
@@ -294,11 +401,7 @@ The Contact Flow Agent processes the request and extracts relevant details.
 
 # Conversation Limits
 
-The system enforces configurable limits.
-
 ## Messages Per Conversation
-
-Configured through:
 
 ```json
 {
@@ -314,17 +417,11 @@ If exceeded:
 }
 ```
 
-Status:
-
-```http
-429 Too Many Requests
-```
+Status: `429 Too Many Requests`
 
 ---
 
 ## Message Length Limit
-
-Configured through:
 
 ```json
 {
@@ -340,19 +437,11 @@ If exceeded:
 }
 ```
 
-Status:
-
-```http
-413 Payload Too Large
-```
+Status: `413 Payload Too Large`
 
 ---
 
 # Supported LLM Providers
-
-The chatbot dynamically loads models using user-provided API keys.
-
-Supported providers:
 
 | Provider | Required Key    |
 | -------- | --------------- |
@@ -364,9 +453,7 @@ Supported providers:
 
 # LLM Fallback System
 
-If the primary model fails, fallback models can be automatically used.
-
-Example:
+If the primary model fails, fallback models are tried in order.
 
 ```json
 {
@@ -377,8 +464,6 @@ Example:
   ]
 }
 ```
-
-Flow:
 
 ```text
 Primary Model
@@ -417,14 +502,20 @@ Response:
 }
 ```
 
-### Continue Conversation
+### Continue with RAG Context
 
 Request:
 
 ```json
 {
   "question": "How does it compare to LangChain?",
-  "conv_id": "3c8dfd6f-6d57-48fc-b2a9-8d8e8f1a65e7"
+  "conv_id": "3c8dfd6f-6d57-48fc-b2a9-8d8e8f1a65e7",
+  "pinecone_metadata": {
+    "index_name": "docs-index",
+    "model": "text-embedding-3-small",
+    "top_k": 3,
+    "mode": "semantic"
+  }
 }
 ```
 
@@ -458,8 +549,6 @@ Response:
 
 # Dependencies
 
-Core technologies used:
-
 * Django Async Views
 * LangGraph
 * LangChain
@@ -469,4 +558,6 @@ Core technologies used:
 * PostgreSQL / Django ORM
 * Async Database Operations
 * Google Search Grounding
+* Supabase (pgvector)
+* Pinecone
 * Structured Logging
