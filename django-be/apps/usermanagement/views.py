@@ -12,6 +12,11 @@ from .supabase_manager.supabase_manager import SupabaseManager
 from .encryption_functions.aes import encode_aes_256
 from django.middleware.csrf import get_token
 from django_ratelimit.decorators import ratelimit
+from apps.core.utilis.orm_functions.user_related_orm import (
+    get_user,
+    get_user_api_keys,
+    log_user_action,
+)
 
 load_dotenv()
 
@@ -248,6 +253,7 @@ def sign_out_user(request):
             data_r = request.POST.dict()
 
         try:
+            
             auth_id = data_r.get("auth_id")
             refresh_token = data_r.get("refresh_token")
             access_token = data_r.get("access_token") 
@@ -303,7 +309,17 @@ def update_user_keys(request):
             data_r = request.POST.dict()
 
         try:
-            user_id = data_r.get("user_id")
+
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+            
             key_type = data_r.get("key_type")
             api_key = data_r.get("api_key")
             secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
@@ -360,7 +376,15 @@ def remove_key(request):
             data_r = request.POST.dict()
 
         try:
-            user_id = data_r.get("user_id")
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
             key_type = data_r.get("key_type")
 
             if not all([user_id, key_type]):

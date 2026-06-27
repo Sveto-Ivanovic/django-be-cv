@@ -25,4 +25,5 @@ urlpatterns = [
     path("embed/", include("apps.embed.urls")),
     path("user/", include("apps.usermanagement.urls")),
     path("vectorsearch/", include("apps.vector_search.urls")),
+    path("evaluate/", include("apps.evaluate.urls")),
 ]

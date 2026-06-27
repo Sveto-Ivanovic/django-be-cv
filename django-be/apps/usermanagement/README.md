@@ -1,192 +1,217 @@
-# API Documentation
+# User Management API Documentation
 
-Base URL: `/api/` (prefix all routes below with your base URL)
+## Base URL
 
----
+```http
+http://localhost:8000/user/
+```
 
-## Table of Contents
+Production example:
 
-- [POST /register_user/](#post-register_user)
-- [POST /login_user/](#post-login_user)
-- [POST /refresh_token/](#post-refresh_token)
-- [POST /logout_user/](#post-logout_user)
-- [GET /refresh_csrf_token/](#get-refresh_csrf_token)
-- [PUT /update_user_keys/](#put-update_user_keys)
-- [PUT /remove_key/](#put-remove_key)
+```http
+https://api.yourdomain.com/user/
+```
 
 ---
 
-## POST /register_user/
+# Authentication Endpoints
 
-Registers a new user with Supabase authentication and stores user details in the database.
+## Register User
 
-**Rate Limit:** 50 requests/day per IP
+Creates a new user account and registers the user through Supabase Authentication.
 
-**Content-Type:** `application/json` or `application/x-www-form-urlencoded`
+### Endpoint
+
+```http
+POST /user/register_user/
+```
 
 ### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `username` | string | ✅ | Unique username |
-| `email` | string | ✅ | User's email address |
-| `password` | string | ✅ | User's password (handled by Supabase auth) |
-| `date_of_birth` | string | ✅ | Date of birth (e.g. `"1990-01-15"`) |
-| `name` | string | ✅ | First name |
-| `surname` | string | ✅ | Last name |
-
-### Example Request
 
 ```json
 {
   "username": "johndoe",
   "email": "john@example.com",
-  "password": "SecurePass123!",
-  "date_of_birth": "1990-01-15",
+  "password": "StrongPassword123!",
+  "date_of_birth": "1995-06-15",
   "name": "John",
   "surname": "Doe"
 }
 ```
 
-### Success Response — `201 Created`
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/user/register_user/ \
+-H "Content-Type: application/json" \
+-d '{
+    "username":"johndoe",
+    "email":"john@example.com",
+    "password":"StrongPassword123!",
+    "date_of_birth":"1995-06-15",
+    "name":"John",
+    "surname":"Doe"
+}'
+```
+
+### Success Response
+
+**Status:** `201 Created`
 
 ```json
 {
   "status": "success",
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "auth_id": "supabase-auth-uuid",
+  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
+  "auth_id": "supabase-auth-id",
   "username": "johndoe"
 }
 ```
 
-### Error Responses
+### Error Response
 
-| Status | Description |
-|--------|-------------|
-| `400` | Missing required fields or registration error |
-| `405` | Wrong HTTP method |
+```json
+{
+  "message": "Missing required fields"
+}
+```
 
 ---
 
-## POST /login_user/
+## Login User
 
-Signs in a user via Supabase authentication and returns session tokens.
+Authenticates a user and returns an access token.
 
-**Rate Limit:** 100 requests/hour per IP
+### Endpoint
 
-**Content-Type:** `application/json` or `application/x-www-form-urlencoded`
+```http
+POST /user/login_user/
+```
 
 ### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `email` | string | ✅ | Registered email address |
-| `password` | string | ✅ | User's password |
-
-### Example Request
 
 ```json
 {
   "email": "john@example.com",
-  "password": "SecurePass123!"
+  "password": "StrongPassword123!"
 }
 ```
 
-### Success Response — `200 OK`
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/user/login_user/ \
+-H "Content-Type: application/json" \
+-d '{
+    "email":"john@example.com",
+    "password":"StrongPassword123!"
+}'
+```
+
+### Success Response
+
+**Status:** `200 OK`
 
 ```json
 {
   "status": "success",
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI...",
-  "refresh_token": "v1.refresh_token_string...",
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "auth_id": "supabase-auth-uuid",
+  "access_token": "jwt-access-token",
+  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
+  "auth_id": "supabase-auth-id",
   "username": "johndoe"
 }
 ```
 
-### Error Responses
+### Cookies
 
-| Status | Description |
-|--------|-------------|
-| `400` | Missing fields, invalid credentials, or sign-in error |
-| `405` | Wrong HTTP method |
+The response also sets:
+
+```http
+Set-Cookie: refresh_token=<token>; HttpOnly; Secure; SameSite=Strict
+```
 
 ---
 
-## POST /refresh_token/
+## Refresh Token
 
-Refreshes the Supabase session using an existing access and refresh token pair.
+Generates a new access token using the current access token and refresh token.
 
-**Rate Limit:** 100 requests/hour per IP
+### Endpoint
 
-**Content-Type:** `application/json` or `application/x-www-form-urlencoded`
+```http
+POST /user/refresh_token/
+```
 
 ### Request Body
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `access_token` | string | ✅ | Current access token |
-| `refresh_token` | string | ✅ | Current refresh token |
-
-### Example Request
-
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI...",
-  "refresh_token": "v1.refresh_token_string..."
+  "access_token": "current-access-token",
+  "refresh_token": "current-refresh-token"
 }
 ```
 
-### Success Response — `200 OK`
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/user/refresh_token/ \
+-H "Content-Type: application/json" \
+-d '{
+    "access_token":"current-access-token",
+    "refresh_token":"current-refresh-token"
+}'
+```
+
+### Success Response
 
 ```json
 {
   "status": "success",
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI...(new)",
-  "refresh_token": "v1.new_refresh_token...",
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "auth_id": "supabase-auth-uuid",
+  "access_token": "new-access-token",
+  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
+  "auth_id": "supabase-auth-id",
   "username": "johndoe"
 }
 ```
 
-### Error Responses
+### Cookies
 
-| Status | Description |
-|--------|-------------|
-| `400` | Missing tokens or refresh failure |
-| `405` | Wrong HTTP method |
+Returns a newly generated refresh token in a secure cookie.
 
 ---
 
-## POST /logout_user/
+## Logout User
 
-Signs out a user by invalidating their Supabase session.
+Logs out the authenticated user and invalidates the session.
 
-**Rate Limit:** 100 requests/hour per IP
+### Endpoint
 
-**Content-Type:** `application/json` or `application/x-www-form-urlencoded`
+```http
+POST /user/logout_user/
+```
 
 ### Request Body
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `auth_id` | string | ✅ | User's Supabase auth ID |
-| `access_token` | string | ✅ | Current access token |
-| `refresh_token` | string | ✅ | Current refresh token |
-
-### Example Request
-
 ```json
 {
-  "auth_id": "supabase-auth-uuid",
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI...",
-  "refresh_token": "v1.refresh_token_string..."
+  "auth_id": "supabase-auth-id",
+  "access_token": "access-token",
+  "refresh_token": "refresh-token"
 }
 ```
 
-### Success Response — `200 OK`
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/user/logout_user/ \
+-H "Content-Type: application/json" \
+-d '{
+    "auth_id":"supabase-auth-id",
+    "access_token":"access-token",
+    "refresh_token":"refresh-token"
+}'
+```
+
+### Success Response
 
 ```json
 {
@@ -195,137 +220,184 @@ Signs out a user by invalidating their Supabase session.
 }
 ```
 
-### Error Responses
-
-| Status | Description |
-|--------|-------------|
-| `400` | Missing fields or sign-out error |
-| `405` | Wrong HTTP method |
-
 ---
 
-## GET /refresh_csrf_token/
+## Refresh CSRF Token
 
-Returns a fresh CSRF token for the current session. Use this token in subsequent state-changing requests if CSRF protection is enabled on the client.
+Generates a fresh CSRF token for frontend applications.
 
-**Rate Limit:** 40 requests/minute per IP
+### Endpoint
+
+```http
+GET /user/refresh_csrf_token/
+```
 
 ### Example Request
 
-```
-GET /refresh_csrf_token/
+```bash
+curl http://localhost:8000/user/refresh_csrf_token/
 ```
 
-### Success Response — `200 OK`
+### Success Response
 
 ```json
 {
-  "csrfToken": "abc123xyzCSRFtokenvalue"
+  "csrfToken": "generated-csrf-token"
 }
 ```
 
 ---
 
-## PUT /update_user_keys/
+# API Key Management
 
-Stores or updates an encrypted third-party API key for a user. Keys are encrypted with AES-256 before being persisted.
+The system supports storing encrypted API keys for supported AI and Vector Database providers.
 
-**Rate Limit:** 20 requests/minute per IP
+Supported key types:
 
-**Content-Type:** `application/json` or `application/x-www-form-urlencoded`
+```text
+pine_cone_api_key
+gemini_api_key
+groq_api_key
+mistral_api_key
+cohere_api_key
+jina_api_key
+```
+
+---
+
+## Update User API Key
+
+Adds or updates an encrypted API key for a user.
+
+### Endpoint
+
+```http
+PUT /user/update_user_keys/
+```
 
 ### Request Body
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `user_id` | string | ✅ | The user's UUID |
-| `key_type` | string | ✅ | One of the accepted key types (see below) |
-| `api_key` | string | ✅ | The plaintext API key to encrypt and store |
-
-**Accepted `key_type` values:**
-
-| Value | Provider |
-|-------|----------|
-| `pine_cone_api_key` | Pinecone |
-| `gemini_api_key` | Google Gemini |
-| `groq_api_key` | Groq |
-| `mistral_api_key` | Mistral AI |
-| `cohere_api_key` | Cohere |
-| `jina_api_key` | Jina AI |
-
-### Example Request
-
 ```json
 {
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "key_type": "groq_api_key",
-  "api_key": "gsk_youractualgroqapikey"
+  "key_type": "gemini_api_key",
+  "api_key": "AIza..."
 }
 ```
 
-### Success Response — `200 OK`
+### Example Request
+
+```bash
+curl -X PUT http://localhost:8000/user/update_user_keys/ \
+-H "Content-Type: application/json" \
+-d '{
+    "user_id":"7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
+    "key_type":"gemini_api_key",
+    "api_key":"AIza..."
+}'
+```
+
+### Success Response
 
 ```json
 {
   "status": "success",
-  "message": "groq_api_key updated successfully for user john@example.com"
+  "message": "gemini_api_key updated successfully for user john@example.com"
 }
 ```
 
-### Error Responses
-
-| Status | Description |
-|--------|-------------|
-| `400` | Missing fields, invalid `key_type`, or DB error |
-| `405` | Wrong HTTP method (must be PUT) |
-
----
-
-## PUT /remove_key/
-
-Removes (nullifies) a stored API key for a user.
-
-**Rate Limit:** 20 requests/minute per IP
-
-**Content-Type:** `application/json` or `application/x-www-form-urlencoded`
-
-### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `user_id` | string | ✅ | The user's UUID |
-| `key_type` | string | ✅ | One of the accepted key types (see table above) |
-
-### Example Request
+### Validation Errors
 
 ```json
 {
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "key_type": "groq_api_key"
+  "message": "Invalid key type"
 }
 ```
 
-### Success Response — `200 OK`
+---
+
+## Remove User API Key
+
+Deletes a stored API key for a user.
+
+### Endpoint
+
+```http
+PUT /user/remove_key/
+```
+
+### Request Body
+
+```json
+{
+  "key_type": "gemini_api_key"
+}
+```
+
+### Example Request
+
+```bash
+curl -X PUT http://localhost:8000/user/remove_key/ \
+-H "Content-Type: application/json" \
+-d '{
+    "user_id":"7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
+    "key_type":"gemini_api_key"
+}'
+```
+
+### Success Response
 
 ```json
 {
   "status": "success",
-  "message": "groq_api_key removed successfully for user 550e8400-e29b-41d4-a716-446655440000"
+  "message": "gemini_api_key removed successfully for user 7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234"
 }
 ```
 
-### Error Responses
+---
 
-| Status | Description |
-|--------|-------------|
-| `400` | Missing fields, invalid `key_type`, or DB error |
-| `405` | Wrong HTTP method (must be PUT) |
+# Rate Limits
+
+| Endpoint           | Limit     |
+| ------------------ | --------- |
+| Register User      | 50/day    |
+| Login User         | 100/hour  |
+| Refresh Token      | 100/hour  |
+| Logout User        | 100/hour  |
+| Refresh CSRF Token | 40/minute |
+| Update User Keys   | 20/minute |
+| Remove Key         | 20/minute |
 
 ---
 
-## Notes
+# Authentication Flow
 
-- All endpoints except `refresh_csrf_token` use `@csrf_exempt`, meaning CSRF tokens are **not** enforced server-side on those routes.
-- API keys stored via `update_user_keys` are encrypted using AES-256 before being written to the database.
-- User actions (registration, login, logout, token refresh, key updates) are all recorded in the `UserLogs` table for auditing.
-- Supabase manages the underlying authentication; the Django layer stores supplementary user data and handles logging.
+```text
+Register User
+      ↓
+Login User
+      ↓
+Receive Access Token + Refresh Token
+      ↓
+Use Access Token for API Requests
+      ↓
+Access Token Expires
+      ↓
+Refresh Token Endpoint
+      ↓
+Receive New Access Token
+      ↓
+Logout User
+```
+
+---
+
+# Security Features
+
+* Supabase Authentication
+* Argon2 Password Hashing
+* AES-256 API Key Encryption
+* HttpOnly Refresh Token Cookies
+* CSRF Token Support
+* Rate Limiting
+* Secure Session Refresh
+* Audit Logging for User Actions

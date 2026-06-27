@@ -146,7 +146,18 @@ class State(TypedDict):
 
     # User ID
     user_id: Annotated[UUID, uuid_default_factory]
-    
+
+    # Supabase metadata
+    supabase_metadata: Annotated[Dict, dict_default_factory]
+
+    # Pinecone metadata
+    pinecone_metadata: Annotated[Dict, dict_default_factory]
+
+    # Context
+    context: Annotated[str, dict_default_factory]
+
+    # Rewritten query
+    rewrite_query: Annotated[str, string_default_factory]
 
 
 class LangchainCallback(BaseCallbackHandler):
@@ -162,11 +173,14 @@ class LangchainCallback(BaseCallbackHandler):
 
         if self.task in ["query_classification"]:
             try:
-                resp = response.generations[0][0].message.tool_calls[0]['args']['answer']
-                text_response = response.generations[0][0].message.tool_calls[0]['args']['answer']
+                tool_calls = response.generations[0][0].message.tool_calls
+                print(f"[DEBUG] Raw tool_calls: {tool_calls}")  # see what's coming back
+                resp = tool_calls[0]['args']['answer']
+                text_response = resp
             except Exception as e:
+                print(f"[DEBUG] Full generation: {response.generations}")  # see full response
                 resp = f"Error extracting answer from tool calls for task {self.task}: {e}"
-                text_response = f"Error extracting answer from tool calls for task {self.task}: {e}"
+                text_response = resp
 
         else:
             try:

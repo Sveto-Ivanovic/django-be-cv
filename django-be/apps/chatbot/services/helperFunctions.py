@@ -33,3 +33,21 @@ def load_json_file(filepath: str) -> dict:
             return json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Error decoding JSON from the file {full_path}: {e}")
+    
+
+def validate_metadata(supabase_metadata: dict | None, pinecone_metadata: dict | None) -> None:
+    """
+    Validates supabase_metadata and pinecone_metadata dicts.
+    Raises ValueError if any required field is missing or None.
+    """
+    if supabase_metadata is not None:
+        supabase_required = ["namespace", "table_name", "model"]
+        missing = [f for f in supabase_required if not supabase_metadata.get(f)]
+        if missing:
+            raise ValueError(f"supabase_metadata is missing required fields: {missing}")
+
+    if pinecone_metadata is not None:
+        pinecone_required = ["index_name", "model"]
+        missing = [f for f in pinecone_required if not pinecone_metadata.get(f)]
+        if missing:
+            raise ValueError(f"pinecone_metadata is missing required fields: {missing}")

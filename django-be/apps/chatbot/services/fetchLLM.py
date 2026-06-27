@@ -22,7 +22,7 @@ def fetchLLMFallbacks(state, task: str, fallbacks_models: List[str] = None, temp
                 logger.error(f"Gemini API key not found for user {state.get('user_info', {}).get('user_id')}")
                 continue
 
-            if thinking_budget and model_name in "gemini-2.5-flash":
+            if thinking_budget and model_name in ["gemini-2.5-flash", "gemini-3.5-flash"]:
                 llm= ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= model_name, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, model_name, "Gemini", task)])
                 llm = structureLLM(llm, structured_output)
                 llms.append(llm)
@@ -60,7 +60,7 @@ def fetchLLM(state, llm_model: str, task: str, fallbacks_models: List[str] = Non
             return None
 
         if fallbacks_models is None:
-            if thinking_budget and llm_model in "gemini-2.5-flash":
+            if thinking_budget and llm_model in ["gemini-2.5-flash", "gemini-3.5-flash"]:
                 llm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model=llm_model, temperature=temperature, thinking_budget=thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
                 llm = structureLLM(llm, structured_output)
                 return llm.with_retry(stop_after_attempt=retry)
@@ -70,7 +70,7 @@ def fetchLLM(state, llm_model: str, task: str, fallbacks_models: List[str] = Non
                 return llm.with_retry(stop_after_attempt=retry)
         else:
             fallback_llms = fetchLLMFallbacks(state, task, fallbacks_models=fallbacks_models, temperature=temperature, thinking_budget=thinking_budget, structured_output=structured_output)
-            if thinking_budget and llm_model in "gemini-2.5-flash":
+            if thinking_budget and llm_model in ["gemini-2.5-flash", "gemini-3.5-flash"]:
                 primaryllm = ChatGoogleGenerativeAI(google_api_key=gemini_api_key, model= llm_model, temperature=temperature, thinking_budget = thinking_budget, callbacks=[LangchainCallback(state, llm_model, "Gemini", task)])
                 primaryllm = structureLLM(primaryllm, structured_output)
                 primaryllm = primaryllm.with_retry(stop_after_attempt=retry)

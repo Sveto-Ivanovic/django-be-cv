@@ -11,6 +11,7 @@ urlpatterns = [
     path("embed_items_into_pinecone/", views_embed.embed_items_into_pinecone, name="embed_items_into_pinecone"),
     path("embed_items_into_supabase/", views_embed.embed_items_into_supabase, name="embed_items_into_supabase"),
     path("get_supabase_tables/", views_supabase.get_supabase_tables, name="get_supabase_tables"),
+    path("delete_supabase_namespace/", views_supabase.delete_supabase_namespace, name="delete_supabase_namespace"),
     path("delete_supabase_records/", views_supabase.delete_supabase_records, name="delete_supabase_records"),
     path("list_supabase_table_records/", views_supabase.list_supabase_table_records, name="list_supabase_table_records"),
     path("create_textsearch_index/", views_pinecone.create_textsearch_index, name="create_textsearch_index"),
