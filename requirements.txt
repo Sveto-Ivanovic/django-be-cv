@@ -26,3 +26,4 @@ django-ratelimit==4.1.0
 cryptography==45.0.5
 ragas==0.4.3
 google-genai==2.10.0
+django-cors-headers==4.9.0

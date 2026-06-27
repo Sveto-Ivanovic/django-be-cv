@@ -29,7 +29,7 @@ if not SECRET_KEY:
     raise ValueError("SECRET_DJANGO_KEY environment variable is not set.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'apps.vector_search.apps.VectorSearchConfig',
     'apps.core.apps.CoreConfig',
     'apps.evaluate.apps.EvaluateConfig',
+    "corsheaders",
     #'django.contrib.admin',
     #'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     #'django.middleware.common.CommonMiddleware',
@@ -64,6 +66,14 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    # 'https://example.com',
+    # other origins...
+]
+# CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {
