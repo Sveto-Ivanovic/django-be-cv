@@ -12,6 +12,32 @@ Production example:
 https://api.yourdomain.com/user/
 ```
 
+> **Note:** Endpoint paths below are kept the same as before since `urls.py` wasn't part of the code I reviewed. Please confirm the actual paths still match `register_user/`, `login_user/`, `refresh_token/`, `logout_user/`, `refresh_csrf_token/`, `update_user_keys/`, `remove_key/`, and `get_user_info/`.
+
+> **Note on authentication:** `logout_user`, `update_user_keys`, `remove_key`, and `get_user_info` now pull `auth_id` from `request.auth_id`, which is presumably set by an authentication middleware/decorator (e.g. from a Bearer token or session) rather than from the request body. `user_id` is looked up server-side from that `auth_id`. Please confirm how `request.auth_id` gets populated (header name, middleware, etc.) so this doc can describe the auth requirement accurately.
+
+---
+
+# Response Envelope
+
+All endpoints now respond with a consistent envelope:
+
+```json
+{
+  "res_status": "success",
+  "response": { ... }
+}
+```
+
+or on failure:
+
+```json
+{
+  "res_status": "error",
+  "response": "Some error message"
+}
+```
+
 ---
 
 # Authentication Endpoints
@@ -60,10 +86,10 @@ curl -X POST http://localhost:8000/user/register_user/ \
 
 ```json
 {
-  "status": "success",
-  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
-  "auth_id": "supabase-auth-id",
-  "username": "johndoe"
+  "res_status": "success",
+  "response": {
+    "username": "johndoe"
+  }
 }
 ```
 
@@ -71,7 +97,8 @@ curl -X POST http://localhost:8000/user/register_user/ \
 
 ```json
 {
-  "message": "Missing required fields"
+  "res_status": "error",
+  "response": "Missing required fields"
 }
 ```
 
@@ -79,7 +106,7 @@ curl -X POST http://localhost:8000/user/register_user/ \
 
 ## Login User
 
-Authenticates a user and returns an access token.
+Signs in a user using Supabase authentication.
 
 ### Endpoint
 
@@ -113,11 +140,20 @@ curl -X POST http://localhost:8000/user/login_user/ \
 
 ```json
 {
-  "status": "success",
-  "access_token": "jwt-access-token",
-  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
-  "auth_id": "supabase-auth-id",
-  "username": "johndoe"
+  "res_status": "success",
+  "response": {
+    "access_token": "jwt-access-token",
+    "username": "johndoe"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "res_status": "error",
+  "response": "Error signing in user: ..."
 }
 ```
 
@@ -126,14 +162,14 @@ curl -X POST http://localhost:8000/user/login_user/ \
 The response also sets:
 
 ```http
-Set-Cookie: refresh_token=<token>; HttpOnly; Secure; SameSite=Strict
+Set-Cookie: refresh_token=<token>; HttpOnly; Secure; SameSite=Strict; Max-Age=604800
 ```
 
 ---
 
 ## Refresh Token
 
-Generates a new access token using the current access token and refresh token.
+Generates a new access token using the current access token and the refresh token stored in cookies.
 
 ### Endpoint
 
@@ -143,10 +179,11 @@ POST /user/refresh_token/
 
 ### Request Body
 
+The refresh token is read from the `refresh_token` cookie automatically — only the access token needs to be sent in the body.
+
 ```json
 {
-  "access_token": "current-access-token",
-  "refresh_token": "current-refresh-token"
+  "access_token": "current-access-token"
 }
 ```
 
@@ -155,9 +192,9 @@ POST /user/refresh_token/
 ```bash
 curl -X POST http://localhost:8000/user/refresh_token/ \
 -H "Content-Type: application/json" \
+--cookie "refresh_token=current-refresh-token" \
 -d '{
-    "access_token":"current-access-token",
-    "refresh_token":"current-refresh-token"
+    "access_token":"current-access-token"
 }'
 ```
 
@@ -165,11 +202,20 @@ curl -X POST http://localhost:8000/user/refresh_token/ \
 
 ```json
 {
-  "status": "success",
-  "access_token": "new-access-token",
-  "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
-  "auth_id": "supabase-auth-id",
-  "username": "johndoe"
+  "res_status": "success",
+  "response": {
+    "access_token": "new-access-token",
+    "username": "johndoe"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "res_status": "error",
+  "response": "Missing refresh token in cookies"
 }
 ```
 
@@ -191,11 +237,11 @@ POST /user/logout_user/
 
 ### Request Body
 
+`auth_id` is resolved from the authenticated request, and `refresh_token` is read from the cookie — only `access_token` is required in the body.
+
 ```json
 {
-  "auth_id": "supabase-auth-id",
-  "access_token": "access-token",
-  "refresh_token": "refresh-token"
+  "access_token": "access-token"
 }
 ```
 
@@ -204,10 +250,9 @@ POST /user/logout_user/
 ```bash
 curl -X POST http://localhost:8000/user/logout_user/ \
 -H "Content-Type: application/json" \
+--cookie "refresh_token=refresh-token" \
 -d '{
-    "auth_id":"supabase-auth-id",
-    "access_token":"access-token",
-    "refresh_token":"refresh-token"
+    "access_token":"access-token"
 }'
 ```
 
@@ -215,8 +260,17 @@ curl -X POST http://localhost:8000/user/logout_user/ \
 
 ```json
 {
-  "status": "success",
-  "message": "User signed out successfully"
+  "res_status": "success",
+  "response": "User signed out successfully"
+}
+```
+
+### Error Response
+
+```json
+{
+  "res_status": "error",
+  "response": "Missing refresh token in cookies"
 }
 ```
 
@@ -224,7 +278,7 @@ curl -X POST http://localhost:8000/user/logout_user/ \
 
 ## Refresh CSRF Token
 
-Generates a fresh CSRF token for frontend applications.
+Generates a fresh CSRF token for frontend applications (set on the session via Django's CSRF cookie).
 
 ### Endpoint
 
@@ -242,7 +296,8 @@ curl http://localhost:8000/user/refresh_csrf_token/
 
 ```json
 {
-  "csrfToken": "generated-csrf-token"
+  "res_status": "success",
+  "response": "Token generated successfully"
 }
 ```
 
@@ -267,7 +322,7 @@ jina_api_key
 
 ## Update User API Key
 
-Adds or updates an encrypted API key for a user.
+Adds or updates an encrypted API key for the authenticated user.
 
 ### Endpoint
 
@@ -276,6 +331,8 @@ PUT /user/update_user_keys/
 ```
 
 ### Request Body
+
+`user_id` is resolved server-side from the authenticated request — it does not need to be sent in the body.
 
 ```json
 {
@@ -290,7 +347,6 @@ PUT /user/update_user_keys/
 curl -X PUT http://localhost:8000/user/update_user_keys/ \
 -H "Content-Type: application/json" \
 -d '{
-    "user_id":"7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
     "key_type":"gemini_api_key",
     "api_key":"AIza..."
 }'
@@ -300,8 +356,8 @@ curl -X PUT http://localhost:8000/user/update_user_keys/ \
 
 ```json
 {
-  "status": "success",
-  "message": "gemini_api_key updated successfully for user john@example.com"
+  "res_status": "success",
+  "response": "gemini_api_key updated successfully for user 7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234"
 }
 ```
 
@@ -309,7 +365,8 @@ curl -X PUT http://localhost:8000/user/update_user_keys/ \
 
 ```json
 {
-  "message": "Invalid key type"
+  "res_status": "error",
+  "response": "Invalid key type"
 }
 ```
 
@@ -317,7 +374,7 @@ curl -X PUT http://localhost:8000/user/update_user_keys/ \
 
 ## Remove User API Key
 
-Deletes a stored API key for a user.
+Deletes a stored API key for the authenticated user.
 
 ### Endpoint
 
@@ -326,6 +383,8 @@ PUT /user/remove_key/
 ```
 
 ### Request Body
+
+`user_id` is resolved server-side from the authenticated request — it does not need to be sent in the body.
 
 ```json
 {
@@ -339,7 +398,6 @@ PUT /user/remove_key/
 curl -X PUT http://localhost:8000/user/remove_key/ \
 -H "Content-Type: application/json" \
 -d '{
-    "user_id":"7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
     "key_type":"gemini_api_key"
 }'
 ```
@@ -348,8 +406,61 @@ curl -X PUT http://localhost:8000/user/remove_key/ \
 
 ```json
 {
-  "status": "success",
-  "message": "gemini_api_key removed successfully for user 7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234"
+  "res_status": "success",
+  "response": "gemini_api_key removed successfully for user 7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234"
+}
+```
+
+---
+
+## Get User Info
+
+Returns profile details and API-key presence flags for the authenticated user.
+
+### Endpoint
+
+```http
+GET /user/get_user_info/
+```
+
+### Example Request
+
+```bash
+curl -X GET http://localhost:8000/user/get_user_info/ \
+-H "Content-Type: application/json"
+```
+
+### Success Response
+
+```json
+{
+  "res_status": "success",
+  "response": {
+    "user_id": "7ab0ec74-8a12-4f5c-8e75-0b2f3f4c1234",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "date_of_birth": "1995-06-15",
+    "name": "John",
+    "surname": "Doe",
+    "user_classification": "standard",
+    "api_keys": {
+      "has_pinecone_api_key": true,
+      "has_gemini_api_key": false,
+      "has_groq_api_key": false,
+      "has_mistral_api_key": false,
+      "has_cohere_api_key": false,
+      "has_jina_api_key": false
+    }
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "res_status": "error",
+  "response": "user_id is required"
 }
 ```
 
@@ -366,6 +477,7 @@ curl -X PUT http://localhost:8000/user/remove_key/ \
 | Refresh CSRF Token | 40/minute |
 | Update User Keys   | 20/minute |
 | Remove Key         | 20/minute |
+| Get User Info      | 20/minute |
 
 ---
 
@@ -376,13 +488,13 @@ Register User
       ↓
 Login User
       ↓
-Receive Access Token + Refresh Token
+Receive Access Token (refresh token set as HttpOnly cookie)
       ↓
 Use Access Token for API Requests
       ↓
 Access Token Expires
       ↓
-Refresh Token Endpoint
+Refresh Token Endpoint (uses cookie automatically)
       ↓
 Receive New Access Token
       ↓

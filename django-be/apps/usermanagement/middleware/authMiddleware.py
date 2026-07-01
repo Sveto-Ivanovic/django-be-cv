@@ -21,7 +21,7 @@ def auth_middleware(get_response):
         '/user/register_user',
         '/user/refresh_token',
         '/user/get_csrf_token',
-        '/user/logout_user'
+        '/messages/send-message'
     ]
 
     try:

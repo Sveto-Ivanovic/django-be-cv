@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Message
 from django.utils import timezone
 import logging
+from django_ratelimit.decorators import ratelimit
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -14,6 +15,7 @@ logger = logging.getLogger(" - Contact endpoints -")
 
 
 @csrf_exempt
+@ratelimit(key='ip', rate='20/m', block=True)
 def send_message(request):
     if request.method=="POST":
         try:
@@ -39,14 +41,14 @@ def send_message(request):
                 m = Message(message=message, email=None, phone=phone, name=None, created_at=timezone.now())
             m.save()
             logger.info(f"Message saved: {m}")
-            return JsonResponse({"status": "success", "message": "Message sent successfully!"})
+            return JsonResponse({"res_status": "success", "response": "Message sent successfully!"})
         
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "message": "Invalid JSON payload"}, status=400)
+            return JsonResponse({"res_status": "error", "response": "Invalid JSON payload"}, status=400)
         except Exception as e:
             logger.error(f"Error occured in send_message endpoint: {e}")
-            return JsonResponse({"status": "error", "message": e}, status=401)
+            return JsonResponse({"res_status": "error", "response": e}, status=401)
 
    
     return HttpResponse("Invalid request method. Please use POST to send a message.")

@@ -84,15 +84,16 @@ def register_user(request):
 
             log.save()
 
-            return JsonResponse({"status": "success", 
-                                 "user_id": str(user.user_id),
-                                 "auth_id": user.auth_id,   
-                                 "username": user.user_name
+
+            return JsonResponse({"res_status": "success", 
+                                 "response": { 
+                                     "username": user.user_name
+                                    }
                                  }, status=201)
         except Exception as e:
-            return HttpResponse(f"Error registering user: {str(e)}", status=400)
+            return JsonResponse({"res_status": "error", "response": str(e)}, status=400)
 
-    return HttpResponse("Invalid request method. Please use POST to send a request.", status=405)
+    return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 
 @csrf_exempt
@@ -113,13 +114,13 @@ def sign_in_user(request):
             password = data_r.get("password")
 
             if not all([email, password]):
-                return HttpResponse("Missing required fields", status=400)
+                return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
             auth_id, response = supabase_manager.sign_in_user(email, password)
 
 
             if response.get("status") != "success":
-                return HttpResponse(f"Error signing in user: {response.get('message')}", status=400)
+                return JsonResponse({"res_status": "error", "response": f"Error signing in user: {response.get('message')}"}, status=400)
             
             # response = supabase.auth.get_user(jwt)
 
@@ -139,12 +140,11 @@ def sign_in_user(request):
             csrf_token = get_token(request)
 
             response = JsonResponse({
-                "status": "success",
+                "res_status": "success",
+                "response":{
                 "access_token": response.get("session_token"),
-                "user_id": str(user.user_id),
-                "auth_id": user.auth_id,
                 "username": user.user_name,
-                #"csrf_token": csrf_token
+                }
             }, status=200)
 
             response.set_cookie(
@@ -161,8 +161,8 @@ def sign_in_user(request):
             return response
 
         except Exception as e:
-            return HttpResponse(f"Error signing in user: {str(e)}", status=400)
-    return HttpResponse("Invalid request method. Please use POST to send a request.", status=405)
+            return JsonResponse({"res_status": "error", "response": str(e)}, status=400)
+    return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 @csrf_exempt
 @ratelimit(key='ip', rate='100/h', block=True)
@@ -178,11 +178,13 @@ def refresh_token(request):
             data_r = request.POST.dict()
 
         try:
-            refresh_token = data_r.get("refresh_token")
+            refresh_token = request.COOKIES.get("refresh_token")
+            if not refresh_token:
+                return JsonResponse({"res_status": "error", "response": "Missing refresh token in cookies"}, status=400)
             access_token = data_r.get("access_token")   
 
             if not refresh_token or not access_token:
-                return HttpResponse("Missing required fields", status=400)
+                return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
             print(f"Received refresh token: {refresh_token} and access token: {access_token}")
             auth_id, response = supabase_manager.refresh_session(access_token, refresh_token)
@@ -202,7 +204,7 @@ def refresh_token(request):
                 )
                 log.save()
                 
-                return HttpResponse(f"Error refreshing token: {response.get('message')}", status=400)
+                return JsonResponse({"res_status": "error", "response": f"Error refreshing token: {response.get('message')}"}, status=400)
             
             log = UserLogs(
                 user_id=user,
@@ -216,12 +218,11 @@ def refresh_token(request):
 
 
             response = JsonResponse({
-                "status": "success",
-                "access_token": new_auth_token,
-           #     "refresh_token": new_refresh_token,
-                "user_id": str(user.user_id),
-                "auth_id": user.auth_id,
-                "username": user.user_name,
+                "res_status": "success",
+                "response": {
+                    "access_token": new_auth_token,
+                    "username": user.user_name
+                }
             }, status=200)
         
             response.set_cookie(
@@ -236,8 +237,8 @@ def refresh_token(request):
             return response
 
         except Exception as e:
-            return HttpResponse(f"Error refreshing token: {str(e)}", status=400)
-    return HttpResponse("Invalid request method. Please use POST to send a request.", status=405)
+            return JsonResponse({"res_status": "error", "response": str(e)}, status=400)
+    return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 @csrf_exempt
 @ratelimit(key='ip', rate='100/h', block=True)
@@ -254,22 +255,27 @@ def sign_out_user(request):
 
         try:
             
-            auth_id = data_r.get("auth_id")
-            refresh_token = data_r.get("refresh_token")
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+            refresh_token = request.COOKIES.get("refresh_token")
+            if not refresh_token:
+                return JsonResponse({"res_status": "error", "response": "Missing refresh token in cookies"}, status=400)
+            
             access_token = data_r.get("access_token") 
 
             if not refresh_token or not access_token:
-                return HttpResponse("Missing required fields", status=400)
+                return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
 
             if not auth_id:
-                return HttpResponse("Missing required fields", status=400)
+                return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
             response = supabase_manager.sign_out_user(access_token, refresh_token)
 
             user = UserTable.objects.get(auth_id=auth_id)
 
             if response.get("status") != "success":
-                return HttpResponse(f"Error signing out user: {response.get('message')}", status=400)
+                return JsonResponse({"res_status": "error", "response": f"Error signing out user: {response.get('message')}"}, status=400)
             
             log = UserLogs(
                 user_id=user,
@@ -279,21 +285,22 @@ def sign_out_user(request):
             )
             log.save()
 
-            return JsonResponse({
-                "status": "success",
-                "message": "User signed out successfully"
-            }, status=200)
+            return JsonResponse({"res_status": "success", "response": "User signed out successfully"}, status=200)
 
         except Exception as e:
-            return HttpResponse(f"Error signing out user: {str(e)}", status=400)
-    return HttpResponse("Invalid request method. Please use POST to send a request.", status=405)
+            return JsonResponse({"res_status": "error", "response": str(e)}, status=400)
+    return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 @csrf_exempt
 @ratelimit(key='ip', rate='40/m', block=True)
 def refresh_csrf_token(request):
     """Returns a CSRF token for the client."""
-    token = get_token(request)
-    return JsonResponse({"csrfToken": token})
+    if request.method == "GET":
+
+        token = get_token(request)
+        return JsonResponse({"res_status": "success", "response": "Token generated successfully"}, status=200)
+    else:
+        return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use GET to send a request."}, status=405)
 
 
 
@@ -318,17 +325,17 @@ def update_user_keys(request):
             user_id = usr_response["user_id"]
 
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
             
             key_type = data_r.get("key_type")
             api_key = data_r.get("api_key")
             secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
 
             if not all([user_id, key_type, api_key]):
-                return HttpResponse("Missing required fields", status=400)
+                return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
             if key_type not in ["pine_cone_api_key", "gemini_api_key", "groq_api_key", "mistral_api_key", "cohere_api_key", "jina_api_key"]:
-                return HttpResponse("Invalid key type", status=400)
+                return JsonResponse({"res_status": "error", "response": "Invalid key type"}, status=400)
             
             encoded_api_key = encode_aes_256(secure_key, api_key)
 
@@ -352,16 +359,16 @@ def update_user_keys(request):
             log.save() 
 
             return JsonResponse({
-                "status": "success",
-                "message": f"{key_type} updated successfully for user {user.user_email}"
+                "res_status": "success",
+                "response": f"{key_type} updated successfully for user {user_id}"
             }, status=200)
             
 
         except Exception as e:
-            return HttpResponse(f"Error updating user keys: {str(e)}", status=400)
+            return JsonResponse({"res_status": "error", "response": f"Error updating user keys: {str(e)}"}, status=400)
 
     else:
-        return HttpResponse("Invalid request method. Please use PUT to send a request.", status=405)
+        return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use PUT to send a request."}, status=405)
     
 
 @csrf_exempt
@@ -384,14 +391,14 @@ def remove_key(request):
             user_id = usr_response["user_id"]
 
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
             key_type = data_r.get("key_type")
 
             if not all([user_id, key_type]):
-                return HttpResponse("Missing required fields", status=400)
+                return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
             if key_type not in ["pine_cone_api_key", "gemini_api_key", "groq_api_key", "mistral_api_key", "cohere_api_key", "jina_api_key"]:
-                return HttpResponse("Invalid key type", status=400)
+                return JsonResponse({"res_status": "error", "response": "Invalid key type"}, status=400)
             
             if UserData.objects.filter(user_id = user_id).exists():
                 user_data_obj = UserData.objects.get(user_id=user_id)
@@ -401,13 +408,57 @@ def remove_key(request):
  
 
             return JsonResponse({
-                "status": "success",
-                "message": f"{key_type} removed successfully for user {user_id}"
-            }, status=200)  
+                "res_status": "success",
+                "response": f"{key_type} removed successfully for user {user_id}"
+            }, status=200)
             
 
         except Exception as e:
-            return HttpResponse(f"Error removing user keys: {str(e)}", status=400)
+            return JsonResponse({"res_status": "error", "response": f"Error removing user keys: {str(e)}"}, status=400)
 
     else:
-        return HttpResponse("Invalid request method. Please use PUT to send a request.", status=405)
+        return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use PUT to send a request."}, status=405)
+    
+@csrf_exempt
+@ratelimit(key='ip', rate='20/m', block=True)
+def get_user_info(request):
+    """Get user info based on auth_id"""
+    if request.method == "GET":
+        try:
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                   
+
+            user_keys = get_user_api_keys(user_id)
+                 
+            user_info = {
+                "user_id": str(usr_response.get("user_id")),
+                "username": usr_response.get("username"),
+                "email": usr_response.get("email"),
+                "date_of_birth": str(usr_response.get("date_of_birth")),
+                "name": usr_response.get("name"),
+                "surname": usr_response.get("surname"),
+                "user_classification": usr_response.get("user_classification"),
+                "api_keys": {
+                    "has_pinecone_api_key": True if user_keys.get("pine_cone_api_key") else False,
+                    "has_gemini_api_key": True if user_keys.get("gemini_api_key") else False,
+                    "has_groq_api_key": True if user_keys.get("groq_api_key") else False,
+                    "has_mistral_api_key": True if user_keys.get("mistral_api_key") else False,
+                    "has_cohere_api_key": True if user_keys.get("cohere_api_key") else False,
+                    "has_jina_api_key": True if user_keys.get("jina_api_key") else False,
+                }
+            }
+            
+            return JsonResponse({"res_status": "success", "response": user_info}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"res_status": "error", "response": str(e)}, status=400)
+    else:
+        return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use GET to send a request."}, status=405)

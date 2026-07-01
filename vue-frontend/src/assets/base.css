@@ -1,0 +1,59 @@
+:root {
+  --app-background: linear-gradient(
+    135deg,
+    #f8fafc 0%,
+    #e0e7ff 45%,
+    #fce7f3 100%
+  );
+
+  --surface-color: rgba(255, 255, 255, 0.55);
+  --text-color: #0f172a;
+  --menu-item-hover-color: rgba(99, 102, 241, 0.12);
+  --border-color-menu: rgba(15, 23, 42, 0.12);
+  --accent-color: #6366f1;
+--hero-headline-color: #312e81;
+--hero-subheadline-color: #475569;
+--button-background-color: #d7b5f2;
+--button-background-color-hover: #f3cdf7;
+--button-background-border-color: #ae61ec;
+--button-background-border-color-hover: #57095f;
+--login-border-color: hsl(183, 43%, 83%);
+--forgot-link-color:  hsl(286, 58%, 49%);
+}
+
+
+.dark {
+  --app-background: linear-gradient(
+    135deg,
+    #020617 0%,
+    #111827 45%,
+    #312e81 100%
+  );
+
+  --surface-color: rgba(15, 23, 42, 0.65);
+
+  --text-color: #f8fafc;
+
+  --menu-item-hover-color: rgba(129, 140, 248, 0.18);
+
+  --border-color-menu: rgba(255,255,255,0.15);
+
+  
+  --accent-color: #818cf8;
+--hero-headline-color: #ffffff;
+--hero-subheadline-color: #cbd5e1;
+--button-background-color: #370247;
+--button-background-color-hover: #611c72;
+--button-background-border-color: #ae61ec;
+--button-background-border-color-hover: #57095f;
+--login-border-color: hsl(183, 90%, 16%);
+--forgot-link-color:  hsl(286, 97%, 26%);
+
+}
+
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--app-background);
+}
