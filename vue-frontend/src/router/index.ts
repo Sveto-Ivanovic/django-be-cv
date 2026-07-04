@@ -40,6 +40,53 @@ const router = createRouter({
       name: 'Missing',
       component: () => import('../views/MissingPage.vue')
     },
+    {
+      path: '/testcases',
+      name: 'TestCaseResults',
+      component: ()=> import('../views/TestCaseResults.vue')
+    },
+        {
+      path: '/pinecone/pinecone-indexes',
+      name: 'PineconeIndexes',
+      component: ()=> import('../views/PineconeIndexes.vue')
+    },
+        {
+      path: '/supabase/supabase-namespaces',
+      name: 'SupabaseNameSpaces',
+      component: ()=> import('../views/SupabaseNamespace.vue')
+    },
+    {
+      path: '/pinecone/pinecone-embed',
+      name: 'PineconeEmbed',
+      component: ()=> import('../views/PineconeEmbed.vue')
+    },
+    {
+      path: '/supabase/supabase-embed',
+      name: 'SupabaseEmbed',
+      component: ()=> import('../views/SupabaseEmbed.vue')
+    },
+    {
+      path: '/dashboard',
+      name: 'Dashboard',
+      component: () => import('../views/Dashboard.vue')
+    },
+
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: () => import('../views/Profile.vue')
+    },
+
+    {
+      path: '/confirm-email',
+      name: 'ConfirmEmail',
+      component: () => import('../views/ConfirmEmail.vue')
+    },
+    {
+      path: '/test',
+      name: 'TestComponent',
+      component: () => import('../views/TestComponentPage.vue')
+    },
 
     {
       path: '/:pathMatch(.*)*',
@@ -53,7 +100,7 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   const userStore = useUserStore();
   const isAuthenticated = userStore.isAuthenticated;
-  const publicPages = ['Login', 'Register', 'Home', 'About', 'Contact', 'Missing', 'NotFound'];
+  const publicPages = ['Login', 'TestComponent', 'Register', 'Home', 'About', 'Contact', 'Missing', 'NotFound', 'ConfirmEmail'];
 
   if (publicPages.includes(to.name as string)) {
     return true;

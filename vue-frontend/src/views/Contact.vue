@@ -1,10 +1,43 @@
 <template>
-  <div class="contact-page-wrapper">
-    <div class="contact-header">Contact us</div>
+  <div v-if="isMobile===true" class="contact-page-wrapper">
+    
 
     <form v-on:submit.prevent="submitForm">
       <div class="form-div-wrapper">
+        <div class="contact-header">Contact us</div>
+        <div>
+          <label class="label-class" for="fname">Name:</label><br>
+          <input type="text" id="fname" name="fname" required v-model="name">
+        </div>
 
+        <div>
+          <label class="label-class" for="email">Email:</label><br>
+          <input type="text" id="email" name="email" v-model="email" required>
+        </div>
+
+        <div>
+          <label class="label-class" for="phone">Phone Number:</label><br>
+          <input type="text" id="phone" name="phone" v-model="phone">
+        </div>
+
+        <div>
+          <label class="label-class" for="message">Message:</label><br>
+          <textarea name="message" id="message" v-model="message" required></textarea>
+        </div>
+
+        <div class="submit-button-div">
+          <button class="submit-button-class" type="submit">Submit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <div v-else class="contact-page-wrapper-big-screen">
+    
+
+    <form class="form-class" v-on:submit.prevent="submitForm">
+      <div class="form-div-wrapper">
+        <div class="contact-header">Contact us</div>
         <div>
           <label class="label-class" for="fname">Name:</label><br>
           <input type="text" id="fname" name="fname" required v-model="name">
@@ -31,12 +64,10 @@
       </div>
     </form>
 
-
+    <img class="image-class" src="/contactus.jpg" alt="Contact Us" />
 
 
   </div>
-
-
 
 
 
@@ -45,8 +76,10 @@
 
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watchEffect } from "vue";
 import contactApi from '../services/contact'
+import { useWindowSize } from "@vueuse/core";
+import { watch } from "fs";
 
 const name = ref("");
 const email = ref("");
@@ -96,6 +129,21 @@ async function submitForm() {
     alert("Something went wrong.");
   }
 }
+
+let isMobile = ref(false)
+const { width, height } = useWindowSize()
+
+
+watchEffect(() => {
+  if (width.value < 1200) {
+    isMobile.value = true
+  } else {
+    isMobile.value = false
+  }
+})
+
+
+
 </script>
 
 
@@ -111,11 +159,38 @@ async function submitForm() {
   padding-bottom: 32px;
 }
 
+.form-class {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.contact-page-wrapper-big-screen {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.image-class {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1;
+  object-position: center 30%;
+}
+
 .contact-header {
   font-size: clamp(1.5rem, 3vw, 2.5rem);
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 700;
   color: var(--hero-headline-color);
+  text-align: center;
 }
 
 .contact-page-wrapper form {
@@ -126,12 +201,14 @@ async function submitForm() {
 }
 
 .form-div-wrapper {
-  width: 50%;
+  width: 80%;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 16px;
   border: 1px solid var(--button-background-border-color);
+  box-shadow: 3px 3px 16px 4px rgba(0, 0, 0, 0.2);
+  background-color: aliceblue;
   border-radius: 16px;
 }
 

@@ -1,13 +1,23 @@
 <template>
-  <div>
-    <header>
-
-      <div class="wrapper">
-        <NavBar v-if="showMenuBar"></NavBar>
-      </div>
-    </header>
-    <div class="view-content"  :class="{ 'no-margin': !showMenuBar }">
+  <div v-if="envelop_with_sidebar === false">
+    <div class="wrapper">
+      <NavBar v-if="showMenuBar"></NavBar>
+    </div>
+    <div class="view-content" :class="{ 'no-margin': !showMenuBar }">
       <RouterView />
+    </div>
+  </div>
+  <div v-else>
+    <div v-if="isFetched">
+      <SideBar>
+        <RouterView />
+      </SideBar>
+
+    </div>
+    <div v-else>
+
+      <LoadingComponent></LoadingComponent>
+
     </div>
   </div>
 </template>
@@ -19,24 +29,40 @@
 import { RouterView, useRoute } from 'vue-router'
 import NavBar from './components/CustomNavBar.vue'
 import { ref, watchEffect } from 'vue';
+import SideBar from './components/DashboardSidebarComponent.vue'
+import { useUserStore } from './stores/user_store/index.js';
+import { globalAPI } from './services/index.js';
+import LoadingComponent from './components/LoadingComponent.vue'
 
 let route = useRoute()
 let showMenuBar = ref(true)
-const allowed_routes= ['Home', 'Contact', 'About']
+let envelop_with_sidebar = ref(false)
+const allowed_routes = ['Home', 'Contact', 'About']
+const dashboard_routes = ['Dashboard', 'Profile', 'SupabaseEmbed', 'PineconeEmbed', 'SupabaseNameSpaces', 'PineconeIndexes']
+const userStore = useUserStore()
 
 
-console.log(import.meta.env.VITE_BE_HOST)
-watchEffect(()=>{
-
-  if(route.name && typeof(route.name) === "string" && allowed_routes.includes(route.name)){
+watchEffect(() => {
+  if (route.name && typeof (route.name) === "string" && allowed_routes.includes(route.name)) {
     showMenuBar.value = true
   }
-  else{
+  else {
     showMenuBar.value = false
   }
-
-
 })
+
+
+watchEffect(() => {
+  if (route.name && typeof (route.name) === "string" && dashboard_routes.includes(route.name)) {
+    envelop_with_sidebar.value = true
+  }
+  else {
+    envelop_with_sidebar.value = false
+  }
+})
+
+
+const { data, isLoading, isFetched } = globalAPI.userManagment.fetchUserInfo()
 
 
 </script>

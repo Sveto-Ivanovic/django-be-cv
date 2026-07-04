@@ -64,6 +64,8 @@ CORS_ORIGIN_WHITELIST = config(
     cast=Csv(),
 )
 
+CORS_ALLOW_CREDENTIALS = True
+
 # Uncomment to allow all origins (dev only):
 # CORS_ALLOW_ALL_ORIGINS = True
 

@@ -19,6 +19,10 @@
 --button-background-border-color-hover: #57095f;
 --login-border-color: hsl(183, 43%, 83%);
 --forgot-link-color:  hsl(286, 58%, 49%);
+--sidebar-background-color: rgba(223, 220, 220, 0.918);
+--sidebar-border-color: rgba(15, 23, 42, 0.12);
+--sidebar-text-color: #0f172a;
+--confirm-bg-color: rgb(238 250 255);
 }
 
 
@@ -48,7 +52,10 @@
 --button-background-border-color-hover: #57095f;
 --login-border-color: hsl(183, 90%, 16%);
 --forgot-link-color:  hsl(286, 97%, 26%);
-
+--sidebar-background-color: rgba(15, 23, 42, 0.65);
+--sidebar-border-color: rgba(255,255,255,0.15);
+--sidebar-text-color: #f8fafc;
+--confirm-bg-color: rgb(126, 133, 136);
 }
 
 
