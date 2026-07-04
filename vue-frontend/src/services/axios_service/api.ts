@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { useUserStore } from '../../stores/user_store'; 
 import { APIResponse } from './axiosTypes';
 import { useRouter } from 'vue-router';
+import router from '../../router';
 
 
 const instance = axios.create({
@@ -29,15 +30,15 @@ instance.interceptors.response.use(
   },
   function (error) {
     const axiosError = error as AxiosError<APIResponse<string>>
-    const router = useRouter()
 
     if (axiosError.response?.status === 401) {
       const userStore = useUserStore();
-      userStore.removeUser();
+      userStore.logOutUser()
       /* latter here we will implement the refresh token logic */
+          router.push({name: 'Login'})
     }
 
-    router.push({name: 'Login'})
+
     return Promise.reject(error);
   }
 );

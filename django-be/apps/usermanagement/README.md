@@ -11,11 +11,6 @@ Production example:
 ```http
 https://api.yourdomain.com/user/
 ```
-
-> **Note:** Endpoint paths below are kept the same as before since `urls.py` wasn't part of the code I reviewed. Please confirm the actual paths still match `register_user/`, `login_user/`, `refresh_token/`, `logout_user/`, `refresh_csrf_token/`, `update_user_keys/`, `remove_key/`, and `get_user_info/`.
-
-> **Note on authentication:** `logout_user`, `update_user_keys`, `remove_key`, and `get_user_info` now pull `auth_id` from `request.auth_id`, which is presumably set by an authentication middleware/decorator (e.g. from a Bearer token or session) rather than from the request body. `user_id` is looked up server-side from that `auth_id`. Please confirm how `request.auth_id` gets populated (header name, middleware, etc.) so this doc can describe the auth requirement accurately.
-
 ---
 
 # Response Envelope

@@ -25,10 +25,18 @@ from apps.core.utilis.pinecone_vector_search.pinecone_textsearch_priview import 
 load_dotenv(override=True)
 
 
+def success_response(response, status=200):
+    return JsonResponse({"res_status": "success", "response": response}, status=status)
+
+
+def error_response(response, status=400):
+    return JsonResponse({"res_status": "error", "response": response}, status=status)
+
+
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def create_pinecone_index(request):
-    if request.method=="POST":
+    if request.method == "POST":
         try:
             if request.content_type == 'application/json':
                 data = json.loads(request.body)
@@ -36,11 +44,10 @@ def create_pinecone_index(request):
             else:
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
-            
 
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
-                raise ValueError("Authentication ID is required to retrieve API keys.")
+                return error_response("Authentication ID is required to retrieve API keys.", status=400)
 
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
@@ -48,7 +55,7 @@ def create_pinecone_index(request):
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
             if pinecone_api_key is None:
-                raise ValueError("Pinecone API key is required.")
+                return error_response("Pinecone API key is required.", status=400)
 
             logger.info(f"Pinecone api key:{pinecone_api_key}")
             pc = Pinecone(api_key=pinecone_api_key)
@@ -58,40 +65,41 @@ def create_pinecone_index(request):
             type_of_index = data.get("type_of_index")
 
             if not pc.has_index(index_name):
-                if type_of_index == "dense" or type_of_index =="sparse":
-                  create_pinecone(pc, type_of_index, index_name, vector_size)
+                if type_of_index == "dense" or type_of_index == "sparse":
+                    create_pinecone(pc, type_of_index, index_name, vector_size)
 
-                  log_user_action(usr_obj, f"User Created Pinecone Index: {index_name}", "create_pinecone_index")
-                  return JsonResponse({"status": "success", "response":f"Successfully created index: {index_name}"})
+                    log_user_action(usr_obj, f"User Created Pinecone Index: {index_name}", "create_pinecone_index")
+                    return success_response({"index_name": index_name}, status=200)
+
                 else:
                     log = UserLogs(
-                      user_id=usr_obj,
-                      action=f"User Failed to Create Pinecone Index with invalid type: {type_of_index}",
-                      timestamp=timezone.now(),
-                      log_type="create_pinecone_index_failure"
+                        user_id=usr_obj,
+                        action=f"User Failed to Create Pinecone Index with invalid type: {type_of_index}",
+                        timestamp=timezone.now(),
+                        log_type="create_pinecone_index_failure"
                     )
-                    log.save()  
+                    log.save()
 
-                    return JsonResponse({"status": "failure", "response":"Index name already exists, please select another one."})
+                    return error_response("Index name already exists, please select another one.", status=400)
             else:
                 log = UserLogs(
-                      user_id=usr_obj,
-                      action=f"User Failed to Create Pinecone Index with existing name: {index_name}",
-                      timestamp=timezone.now(),
-                      log_type="create_pinecone_index_failure"
-                    )
+                    user_id=usr_obj,
+                    action=f"User Failed to Create Pinecone Index with existing name: {index_name}",
+                    timestamp=timezone.now(),
+                    log_type="create_pinecone_index_failure"
+                )
                 log.save()
-                return JsonResponse({"status": "failure", "response":"Index name already exists, please select another one."})
-        
+                return error_response("Index name already exists, please select another one.", status=400)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in create_pinecone_index: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
     else:
-        return HttpResponse("Invalid request method. Please use POST to send a request.")
+        return error_response("Invalid request method. Please use POST to send a request.", status=500)
 
 
 @csrf_exempt
@@ -105,7 +113,7 @@ def create_textsearch_index(request):
             else:
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
-            
+
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -117,25 +125,25 @@ def create_textsearch_index(request):
 
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
-            
+
             index_name = data.get("index_name")
 
             response = create_pinecone_textsearch_index(index_name, pinecone_api_key)
 
             log_user_action(usr_obj, f"User Created Pinecone Text Search Index: {index_name}", "create_pinecone_textsearch_index")
 
-            return JsonResponse({"status": "success", "response": response}, status=200)
-        
+            return success_response(response, status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in create_pinecone_textsearch_index: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
     else:
-        return HttpResponse("Invalid request method. Please use POST to send a request.")
-    
+        return error_response("Invalid request method. Please use POST to send a request.", status=500)
+
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='POST', block=True)
@@ -148,7 +156,7 @@ def delete_pinecone_text_search(request):
             else:
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
-            
+
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -160,31 +168,31 @@ def delete_pinecone_text_search(request):
 
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
-            
+
             index_name = data.get("index_name")
 
             response = delete_textsearch_index(index_name, pinecone_api_key)
 
             log_user_action(usr_obj, f"User Deleted Pinecone Text Search Index: {index_name}", "delete_pinecone_textsearch_index")
 
-            return JsonResponse({"status": "success", "response": response}, status=200)
-        
+            return success_response(response, status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in delete_pinecone_textsearch_index: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
     else:
-        return HttpResponse("Invalid request method. Please use POST to send a request.")
+        return error_response("Invalid request method. Please use POST to send a request.", status=500)
 
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='GET', block=True)
 def get_pinecone_indexes(request):
-    if request.method=="GET":
-        try:            
+    if request.method == "GET":
+        try:
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -196,40 +204,40 @@ def get_pinecone_indexes(request):
 
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
-             
+
             pc = Pinecone(api_key=pinecone_api_key)
-            listed_indexes=pc.list_indexes()
+            listed_indexes = pc.list_indexes()
 
             list_of_dict = []
 
             for item in listed_indexes.indexes:
                 list_of_dict.append({
-                    "index_name": item.get("name"),
-                    "metric": item.get("metric"),
-                    "vector_type": item.get("vector_type"),
-                    "dimension":  item.get("dimension"),
-                    "embed_model": item.get("embed", {}).get("model", "dense-manual")
+                    "index_name": getattr(item, 'name',"None"),
+                "metric": getattr(item, 'metric', "None"),
+                "vector_type": getattr(item, 'vector_type', "None"),
+                "dimension": getattr(item, 'dimension', "0"),
+                "embed_model": getattr(getattr(item, 'embed', None), 'model', "None")
+
                 })
 
             log_user_action(usr_obj, f"User Fetched Pinecone Indexes", "fetch_pinecone_indexes")
 
-            return JsonResponse({"status": "sucess", "response":list_of_dict}, status=200)
-        
+            return success_response(list_of_dict, status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in get_pinecone_indexes: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-   
-    return HttpResponse("Invalid request method. Please use GET to send a request.")
+    return error_response("Invalid request method. Please use GET to send a request.", status=500)
 
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_pinecone_index(request):
-    if request.method=="POST":
+    if request.method == "POST":
         try:
             if request.content_type == 'application/json':
                 data = json.loads(request.body)
@@ -237,7 +245,7 @@ def delete_pinecone_index(request):
             else:
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
-            
+
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -254,30 +262,29 @@ def delete_pinecone_index(request):
             pc = Pinecone(api_key=pinecone_api_key)
             pc.delete_index(name=index_name)
 
-
             log_user_action(usr_obj, f"User Deleted Pinecone Index: {index_name}", "delete_pinecone_index")
 
             usr_metadata = UserVectorMetadata.objects.filter(user_id=user_id, namespace=index_name, namespace_type="pinecone").first()
             if usr_metadata:
-                usr_metadata.delete()   
-            
-            return JsonResponse({"status": "sucess", "response":f"Sucessfully deleted index:{index_name}"}, status=200)
-        
+                usr_metadata.delete()
+
+            return success_response(f"Sucessfully deleted index:{index_name}", status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in delete_pinecone_index: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-   
-    return HttpResponse("Invalid request method. Please use POST to send a request.")
+    return error_response("Invalid request method. Please use POST to send a request.", status=500)
+
 
 @csrf_exempt
 #@ratelimit(key='ip', rate='4/m', method='GET', block=True)
 async def fetch_pinecone_index_data(request):
-    if request.method=="GET":
-        try:            
+    if request.method == "GET":
+        try:
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -289,18 +296,18 @@ async def fetch_pinecone_index_data(request):
 
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
-            
+
             index_name = request.GET.get("index_name")
 
             # Init pine cone index and get its description
             start_time = time.time()
             pc = Pinecone(api_key=pinecone_api_key)
-            index_description=pc.describe_index(name=index_name)
+            index_description = pc.describe_index(name=index_name)
             index = pc.Index(name=index_name)
             logger.info(f"Time of exec. for pinecone index init and description:{time.time()- start_time}")
 
             # get vector indexes
-            record_idxs= get_record_ids(index)
+            record_idxs = get_record_ids(index)
 
             # batch indexes to fetch their data
             batches = batch_record_ids(record_idxs)
@@ -310,14 +317,13 @@ async def fetch_pinecone_index_data(request):
             pc = Pinecone(api_key=pinecone_api_key)
 
             semaphore = asyncio.Semaphore(5)
-            
 
             index_async = pc.IndexAsyncio(host=index_description.index.host)
 
             async def process_batch_with_concurrency_limit(batch, ind):
                 async with semaphore:
                     return await fetch_batch(index_async, batch, ind)
-            
+
             tasks = []
             for ind, batch in enumerate(batches):
                 task = asyncio.create_task(process_batch_with_concurrency_limit(batch, ind))
@@ -330,25 +336,26 @@ async def fetch_pinecone_index_data(request):
 
             await log_user_action_async(usr_obj, f"User Fetched Records from Pinecone Index: {index_name}", "fetch_pinecone_index_data")
 
-            logger.info(f"Number of records retrieved:{len(records)}")            
-            return JsonResponse({"status": "sucess", "response": records}, status=200)
-        
+            logger.info(f"Number of records retrieved:{len(records)}")
+            return success_response(records, status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in fetch_pinecone_index_data: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-    return HttpResponse("Invalid request method. Please use POST to send a request.")
+    return error_response("Invalid request method. Please use POST to send a request.", status=500)
+
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='GET', block=True)
 def fetch_pinecone_index_record(request):
-    if request.method=="GET":
+    if request.method == "GET":
         try:
             query_params = request.GET
-            
+
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -358,10 +365,9 @@ def fetch_pinecone_index_record(request):
 
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
-            
             if pinecone_api_key is None:
                 raise ValueError("Pinecone API key is required.")
-            
+
             index_name = query_params.get("index_name")
             record_id = query_params.get("record_id")
 
@@ -372,33 +378,32 @@ def fetch_pinecone_index_record(request):
             logger.info(f"Time of exec. for pinecone index init and description:{time.time()- start_time}")
 
             # get vector indexes
-            record=index.fetch(ids=[record_id])
+            record = index.fetch(ids=[record_id])
 
             response = {
-                "metadata":record.vectors[record_id].metadata,
-                "vector":record.vectors[record_id].values,
-                "id":record.vectors[record_id].id,
+                "metadata": record.vectors[record_id].metadata,
+                "vector": record.vectors[record_id].values,
+                "id": record.vectors[record_id].id,
             }
-         
+
             log_user_action(usr_obj, f"User Fetched Record with id: {record_id} from Pinecone Index: {index_name}", "fetch_pinecone_index_record")
 
-            return JsonResponse({"status": "sucess", "response": response}, status=200)
-        
+            return success_response(response, status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in fetch_pinecone_index_data: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-    return HttpResponse("Invalid request method. Please use POST to send a request.")
-
+    return error_response("Invalid request method. Please use POST to send a request.", status=500)
 
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_pinecone_index_record(request):
-    if request.method=="POST":
+    if request.method == "POST":
         try:
             if request.content_type == 'application/json':
                 data = json.loads(request.body)
@@ -406,8 +411,7 @@ def delete_pinecone_index_record(request):
             else:
                 data = request.POST
                 logger.info(f"Data from request (non application/json):{data}.")
-            
-            
+
             auth_id = request.auth_id if hasattr(request, 'auth_id') else None
             if auth_id is None:
                 raise ValueError("Authentication ID is required to retrieve API keys.")
@@ -441,14 +445,14 @@ def delete_pinecone_index_record(request):
                 usr_metadata.row_count = max(usr_metadata.row_count - len(record_id), 0)
                 usr_metadata.updated_at = timezone.now()
                 usr_metadata.save()
-                
-            return JsonResponse({"status": "success", "response": f"Successfully deleted record with id: {record_id}"}, status=200)
-        
+
+            return success_response(f"Successfully deleted record with id: {record_id}", status=200)
+
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in fetch_pinecone_index_data: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-    return HttpResponse("Invalid request method. Please use POST to send a request.")
+    return error_response("Invalid request method. Please use POST to send a request.", status=500)

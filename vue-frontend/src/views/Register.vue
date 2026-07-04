@@ -93,6 +93,7 @@ import { useRouter } from 'vue-router'
 import { globalAPI } from '../services'
 import { AxiosError } from 'axios'
 import { APIResponse } from '../services/axios_service/axiosTypes'
+import { useUserStore } from '../stores/user_store';
 
 
 interface ModelType {
@@ -106,6 +107,7 @@ interface ModelType {
 }
 
 
+const userStore = useUserStore()
 const errorBox = ref({
   showError: false,
   errorMessage: ''
@@ -237,6 +239,11 @@ function handleValidateButtonClick(e: MouseEvent) {
         errorBox.value.showError = false
         errorBox.value.errorMessage = ''
         isLoading.value = false
+        userStore.setEmail(modelRef.value.email!)
+        router.push({
+          name: "ConfirmEmail"
+        })
+
       } catch (error) {
         let errorAxios = error as AxiosError<APIResponse<string>>
         errorBox.value.showError = true

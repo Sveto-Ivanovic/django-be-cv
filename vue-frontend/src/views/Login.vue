@@ -79,7 +79,10 @@ import { useRouter } from 'vue-router'
 import { globalAPI} from '../services'
 import { AxiosError } from 'axios'
 import {APIResponse} from '../services/axios_service/axiosTypes'
+import { useUserStore } from '../stores/user_store'
 
+
+const userStore = useUserStore()
 const {mutateAsync, isPending} = globalAPI.userManagment.loginUser()
 const router = useRouter()
 const formRef = ref<FormInst | null>(null)
@@ -122,14 +125,17 @@ function handleValidateClick(e: MouseEvent | KeyboardEvent) {
       loading.value = true
       
       try {
+        userStore.logOutUser()
         const response = await mutateAsync({
           email: formStructure.value.email,
           password: formStructure.value.password
         })
-  
         errorBox.value.showError = false
         errorBox.value.errorMessage = ''
         loading.value = false
+        router.push({
+          name: "Dashboard"
+        })
       } catch (error) {
         let errorAxios = error as AxiosError<APIResponse<string>>
         errorBox.value.showError = true
@@ -244,7 +250,6 @@ function handleSignUp() {
   border-radius: 4px;
 }
 
-/* Mobile view */
 @media (max-width: 600px) {
   .page-wrapper {
     padding: 12px;

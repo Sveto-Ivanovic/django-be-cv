@@ -116,15 +116,15 @@ def sign_in_user(request):
             if not all([email, password]):
                 return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
-            auth_id, response = supabase_manager.sign_in_user(email, password)
+            auth_id, auth_response = supabase_manager.sign_in_user(email, password)
 
 
-            if response.get("status") != "success":
-                return JsonResponse({"res_status": "error", "response": f"Error signing in user: {response.get('message')}"}, status=400)
+            if auth_response.get("status") != "success":
+                return JsonResponse({"res_status": "error", "response": f"Error signing in user: {auth_response.get('message')}"}, status=400)
             
             # response = supabase.auth.get_user(jwt)
 
-            print("Sign in response: ", response)
+            print("Sign in response: ", auth_response)
 
             user = UserTable.objects.get(auth_id=auth_id)
             print(f"User found: {user.user_email} with auth_id: {user.auth_id}")
@@ -142,14 +142,14 @@ def sign_in_user(request):
             response = JsonResponse({
                 "res_status": "success",
                 "response":{
-                "access_token": response.get("session_token"),
+                "access_token": auth_response.get("session_token"),
                 "username": user.user_name,
                 }
             }, status=200)
 
             response.set_cookie(
                 key='refresh_token',
-                value=response.get("refresh_token"),
+                value=auth_response.get("refresh_token"),
                 httponly=True,
                 secure=True,
                 samesite='Strict',
@@ -217,7 +217,7 @@ def refresh_token(request):
 
 
 
-            response = JsonResponse({
+            response_j = JsonResponse({
                 "res_status": "success",
                 "response": {
                     "access_token": new_auth_token,
@@ -225,7 +225,7 @@ def refresh_token(request):
                 }
             }, status=200)
         
-            response.set_cookie(
+            response_j.set_cookie(
                 key='refresh_token',
                 value=new_refresh_token,
                 httponly=True,
@@ -234,7 +234,7 @@ def refresh_token(request):
                 max_age=7*24*60*60  # 7 days
             )
 
-            return response
+            return response_j
 
         except Exception as e:
             return JsonResponse({"res_status": "error", "response": str(e)}, status=400)
@@ -440,14 +440,14 @@ def get_user_info(request):
                  
             user_info = {
                 "user_id": str(usr_response.get("user_id")),
-                "username": usr_response.get("username"),
-                "email": usr_response.get("email"),
+                "username": usr_response.get("user_name"),
+                "email": usr_response.get("user_email"),
                 "date_of_birth": str(usr_response.get("date_of_birth")),
                 "name": usr_response.get("name"),
                 "surname": usr_response.get("surname"),
                 "user_classification": usr_response.get("user_classification"),
                 "api_keys": {
-                    "has_pinecone_api_key": True if user_keys.get("pine_cone_api_key") else False,
+                    "has_pinecone_api_key": True if user_keys.get("pinecone_api_key") else False,
                     "has_gemini_api_key": True if user_keys.get("gemini_api_key") else False,
                     "has_groq_api_key": True if user_keys.get("groq_api_key") else False,
                     "has_mistral_api_key": True if user_keys.get("mistral_api_key") else False,
