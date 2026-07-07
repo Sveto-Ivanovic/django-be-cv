@@ -62,5 +62,8 @@
 body {
   min-height: 100vh;
   margin: 0;
+}
+
+body:has(.bgcolor-body) {
   background: var(--app-background);
 }

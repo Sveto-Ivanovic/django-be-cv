@@ -65,9 +65,7 @@ const props = withDefaults(defineProps<SupabaseNamespace & { routeTo: string }>(
 
 const router = useRouter()
 function HandleCardClick(to: string) {
-    router.push({
-        name: to
-    })
+    router.push(`/supabase/supabase-namespaces/${props.namespace}/${props.supabase_table_name}`)
 }
 
 

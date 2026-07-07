@@ -398,7 +398,7 @@ async function handleApiReqClick(key_type: string, api_key: string) {
     letter-spacing: 0.02em;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1200px) {
 .api-keys :deep(.n-card-content) {
     display: flex;
     flex-direction: column;

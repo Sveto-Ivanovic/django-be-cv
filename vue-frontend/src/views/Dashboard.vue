@@ -119,11 +119,11 @@ function handleRoute( route: string ){
 
 <style scoped>
 .dashboard {
-    max-width: 1100px;
     padding: 40px;
     display: flex;
     flex-direction: column;
     gap: 30px;
+    width: 100%;
 }
 
 .welcome-card {
@@ -131,6 +131,7 @@ function handleRoute( route: string ){
     border-radius: 14px;
     padding: 25px;
     box-shadow: 0 2px 10px 4px rgba(0,0,0,.2);
+    width: 90%;
 }
 
 .welcome-card h1 {
@@ -146,6 +147,7 @@ function handleRoute( route: string ){
     border-radius: 14px;
     padding: 25px;
     box-shadow: 0 2px 10px 4px rgba(0,0,0,.2);
+    width: 90%;
 }
 
 .status-card h2 {
@@ -188,7 +190,7 @@ function handleRoute( route: string ){
 }
 
 .action-card {
-    width: 90%;
+    width: 80%;
     background: white;
     border-radius: 12px;
     padding: 22px 30px;
@@ -209,5 +211,26 @@ function handleRoute( route: string ){
     box-shadow: 0 10px 24px 6px rgba(0,0,0,.2);
     border-color: #409eff;
     color: #409eff;
+}
+
+@media(max-width: 1000px) {
+  .dashboard {
+    padding: 24px;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    width: 100%;
+}
+
+.status-card {
+  width: 85%;
+  padding: 16px;
+}
+
+.welcome-card {
+    padding: 16px;
+}
 }
 </style>

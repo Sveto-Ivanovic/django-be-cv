@@ -19,13 +19,15 @@ def batch_record_ids(record_idxs: list):
 
     # batch indexes to fetch their data
     batches = []
+    
     for idx in record_idxs:
-        id_len = len(json.dumps(idx)) + 1
+
+        id_len = len(idx.id) + 1
         if current_length + id_len > 500:
             batches.append(current_batch)
             current_batch = []
             current_length = 2
-        current_batch.append(idx)
+        current_batch.append(idx.id)
         current_length += id_len
     if current_batch:
         batches.append(current_batch)
@@ -33,16 +35,29 @@ def batch_record_ids(record_idxs: list):
     return batches
 
 
-def process_batch_record_results(batch_results):
+def process_batch_record_results(batch_results, index_name=None):
     records=[]
+    print('batchres')
+    print(batch_results[1:3])
     for batch_result in batch_results:
         vector_data = []
+
         for id,vector in batch_result.vectors.items():
+
             vector_data.append(
                 {
                     'id': id,
                     #'vector': vector.values,
-                    'metadata': vector.metadata
+                    'metadata': vector.metadata,
+                    'index_name': index_name,
+                    'source': vector.metadata.get("source"),
+                    'created_at': vector.metadata.get("embedded_when"),
+                    'model': vector.metadata.get("embedding_model") or vector.metadata.get("model"),
+                    'content':vector.metadata.get("text") or vector.metadata.get("content"),
+                    'is_chunk': True if vector.metadata.get("chunk_index") and vector.metadata.get("chunk_index") >=0  else False,
+                    'chunk_number': vector.metadata.get("chunk_index"),
+                    'type': vector.metadata.get("type_of_flow")
+
                 }
             )
 

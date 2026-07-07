@@ -43,27 +43,39 @@ const router = createRouter({
     {
       path: '/testcases',
       name: 'TestCaseResults',
-      component: ()=> import('../views/TestCaseResults.vue')
+      component: () => import('../views/TestCaseResults.vue')
     },
-        {
-      path: '/pinecone/pinecone-indexes',
-      name: 'PineconeIndexes',
-      component: ()=> import('../views/PineconeIndexes.vue')
-    },
-        {
+
+    {
       path: '/supabase/supabase-namespaces',
       name: 'SupabaseNameSpaces',
-      component: ()=> import('../views/SupabaseNamespace.vue')
-    },
-    {
-      path: '/pinecone/pinecone-embed',
-      name: 'PineconeEmbed',
-      component: ()=> import('../views/PineconeEmbed.vue')
+      component: () => import('../views/SupabaseNamespacesViews/SupabaseNamespace.vue')
     },
     {
       path: '/supabase/supabase-embed',
       name: 'SupabaseEmbed',
-      component: ()=> import('../views/SupabaseEmbed.vue')
+      component: () => import('../views/SupabaseNamespacesViews/SupabaseEmbed.vue')
+    },
+    {
+      path: '/supabase/supabase-namespaces/:namespace/:table_name',
+      name: 'SupabaseNamespaceRecords',
+      component: () => import('../views/SupabaseNamespacesViews/SupabaseNamespaceData.vue')
+    },
+    {
+      path: '/pinecone/pinecone-embed',
+      name: 'PineconeEmbed',
+      component: () => import('../views/PineconeIndexViews/PineconeEmbed.vue')
+    },
+
+    {
+      path: '/pinecone/pinecone-indexes',
+      name: 'PineconeIndexes',
+      component: () => import('../views/PineconeIndexViews/PineconeIndexes.vue')
+    },
+    {
+      path: '/pinecone/pinecone-indexes/:index_name',
+      name: 'PineconeIndexRecords',
+      component: () => import('../views/PineconeIndexViews/PineconeIndexRecords.vue')
     },
     {
       path: '/dashboard',
