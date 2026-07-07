@@ -1,6 +1,8 @@
+import { NullLiteral } from "typescript";
+
 export type CreatePineconeIndexRequest = {
     index_name: string;
-    vector_size: number;
+    vector_size: number | string;
     type_of_index: "dense" | "sparse"
 }
 
@@ -31,7 +33,7 @@ export type IndexItem = {
     index_name: string;
     metric: string;
     vector_type: string;
-    dimension: number;
+    dimension: number | null | undefined | NullLiteral;
     embed_model: string;
 };
 
@@ -43,16 +45,24 @@ export type DeletePineconeIndexRequest = {
 }
 
 
-export type GetPineconeIndexRequest = {
+export type GetPineconeIndexRecordsRequest = {
     index_name: string;
 }
 
-export type IndexRecord = {
+export type PineconeIndexRecord = {
     id: string,
+    index_name: string;
+    source: string;
+    chunk_number: number;
+    content: string;
+    model: string;
+    is_chunk: boolean;
+    type: string;
     metadata: Record<string, any>
-}
+    created_at: string
 
-export type GetPineconeIndexResponse = IndexRecord[]
+}
+export type GetPineconeIndexRecordsResponse = PineconeIndexRecord[]
 
 export type GetPineconeIndexRecordRequest = {
     index_name: string;

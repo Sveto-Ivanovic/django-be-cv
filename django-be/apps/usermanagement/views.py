@@ -151,7 +151,7 @@ def sign_in_user(request):
                 key='refresh_token',
                 value=auth_response.get("refresh_token"),
                 httponly=True,
-                secure=True,
+          #      secure=True,
                 samesite='Strict',
                 max_age=7*24*60*60  # 7 days
             )
@@ -229,7 +229,7 @@ def refresh_token(request):
                 key='refresh_token',
                 value=new_refresh_token,
                 httponly=True,
-                secure=True,
+        #        secure=True,
                 samesite='Strict',
                 max_age=7*24*60*60  # 7 days
             )

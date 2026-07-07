@@ -12,7 +12,7 @@ export type GetSupabaseNamespacesResponse= SupabaseNamespace[]
 
 export type DeleteSupabaseRecordsRequest = {
     table_name: string;
-    ids_to_delete: string[];
+    ids: string[];
     namespace: string;
 }
 
@@ -28,8 +28,22 @@ export type GetSupabaseNamespaceRecordsRequest = {
     namespace: string;
 }
 
+export type SupabaseNamespaceRecord = {
+    id: string,
+    namespace: string;
+    source: string;
+    chunk_number: number;
+    content: string;
+    model: string;
+    is_chunk: boolean;
+    type: string;
+    metadata: Record<string, any>
+    created_at: string
+
+}
+
 export type GetSupabaseNamespacesRecordsResponses = {
-    records: any[];
+    records: SupabaseNamespaceRecord[];
     count: number;
     table_name: string;
     namespace: string;

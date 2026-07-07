@@ -62,7 +62,8 @@ def create_pinecone_index(request):
 
             index_name = data.get("index_name")
             vector_size = data.get("vector_size")
-            type_of_index = data.get("type_of_index")
+            vector_size = int(vector_size)
+            type_of_index = data.get("type_of_index", "dense")
 
             if not pc.has_index(index_name):
                 if type_of_index == "dense" or type_of_index == "sparse":
@@ -302,38 +303,36 @@ async def fetch_pinecone_index_data(request):
             # Init pine cone index and get its description
             start_time = time.time()
             pc = Pinecone(api_key=pinecone_api_key)
+
+            if not index_name in pc.list_indexes().names():
+                return success_response([], status=200)
+        
+
             index_description = pc.describe_index(name=index_name)
             index = pc.Index(name=index_name)
             logger.info(f"Time of exec. for pinecone index init and description:{time.time()- start_time}")
-
             # get vector indexes
             record_idxs = get_record_ids(index)
 
             # batch indexes to fetch their data
             batches = batch_record_ids(record_idxs)
-
             logger.info(f"Number of api calls for fetch:{len(batches)}")
-
+    
             pc = Pinecone(api_key=pinecone_api_key)
-
-            semaphore = asyncio.Semaphore(5)
-
-            index_async = pc.IndexAsyncio(host=index_description.index.host)
+            semaphore = asyncio.Semaphore(2)
+            index_async = pc.IndexAsyncio(host=index_description.host)
 
             async def process_batch_with_concurrency_limit(batch, ind):
                 async with semaphore:
                     return await fetch_batch(index_async, batch, ind)
-
             tasks = []
             for ind, batch in enumerate(batches):
                 task = asyncio.create_task(process_batch_with_concurrency_limit(batch, ind))
                 tasks.append(task)
-
             batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-            records = process_batch_record_results(batch_results)
+            records = process_batch_record_results(batch_results, index_name=index_name)
 
             await index_async.close()
-
             await log_user_action_async(usr_obj, f"User Fetched Records from Pinecone Index: {index_name}", "fetch_pinecone_index_data")
 
             logger.info(f"Number of records retrieved:{len(records)}")

@@ -113,7 +113,7 @@ def delete_supabase_records(request):
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='GET', block=True)
-async def list_supabase_table_records(request):
+def list_supabase_table_records(request):
     if request.method == "GET":
         try:
             query_params = request.GET

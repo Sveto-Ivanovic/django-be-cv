@@ -1,5 +1,5 @@
 <template>
-  <div v-if="envelop_with_sidebar === false">
+  <div v-if="envelop_with_sidebar === false" :class="{ 'bgcolor-body': !envelop_with_sidebar }">
     <div class="wrapper">
       <NavBar v-if="showMenuBar"></NavBar>
     </div>
@@ -38,9 +38,9 @@ let route = useRoute()
 let showMenuBar = ref(true)
 let envelop_with_sidebar = ref(false)
 const allowed_routes = ['Home', 'Contact', 'About']
-const dashboard_routes = ['Dashboard', 'Profile', 'SupabaseEmbed', 'PineconeEmbed', 'SupabaseNameSpaces', 'PineconeIndexes']
+const dashboard_routes = ['Dashboard', 'Profile', 'SupabaseEmbed', 'PineconeEmbed', 
+'SupabaseNameSpaces', 'PineconeIndexes', 'SupabaseNamespaceRecords', 'PineconeIndexRecords', 'PineconeCreateIndex']
 const userStore = useUserStore()
-
 
 watchEffect(() => {
   if (route.name && typeof (route.name) === "string" && allowed_routes.includes(route.name)) {
@@ -76,5 +76,9 @@ const { data, isLoading, isFetched } = globalAPI.userManagment.fetchUserInfo()
 .no-margin {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+.bgcolor-body {
+  background-color: transparent;
 }
 </style>

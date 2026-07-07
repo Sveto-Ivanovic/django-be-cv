@@ -1,5 +1,5 @@
 <template>
-    <n-card class="inde-card-root" hoverable @click="HandleCardClick(props.routeTo)">
+    <n-card class="index-card-root" hoverable @click="HandleCardClick()">
 
 
         <div class="card-header">
@@ -8,7 +8,7 @@
                 <span class="subtitle">Index Name</span>
             </div>
 
-            <div class="rows">
+            <div class="rows" v-if="props.dimension">
                 <span class="rows-number">{{ props.dimension }}</span>
                 <span class="rows-text">Dimension</span>
             </div>
@@ -58,10 +58,8 @@ const props = withDefaults(defineProps<IndexItem & { routeTo: string }>(), {
 })
 
 const router = useRouter()
-function HandleCardClick(to: string) {
-    router.push({
-        name: to
-    })
+function HandleCardClick() {
+    router.push(`/pinecone/pinecone-indexes/${props.index_name}`)
 }
 
 
@@ -72,8 +70,8 @@ function HandleCardClick(to: string) {
 
 <style scoped>
 
-.inde-card-root {
-    width: min(500px, 100%);
+.index-card-root {
+    width: min(600px, 100%);
     min-height: 260px;
     cursor: pointer;
     border-radius: 18px;
@@ -83,13 +81,13 @@ function HandleCardClick(to: string) {
 
 }
 
-.inde-card-root:hover {
+.index-card-root:hover {
     transform: translateY(-6px);
     box-shadow: 3px 16px 40px rgba(0, 0, 0, .15);
     border: 1px solid #4f46e5;
 }
 
-.inde-card-root :deep(.n-card-content) {
+.index-card-root :deep(.n-card-content) {
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -99,6 +97,7 @@ function HandleCardClick(to: string) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap:16px;
 }
 
 .card-header h2 {
@@ -183,6 +182,15 @@ function HandleCardClick(to: string) {
     word-break: break-word;
 }
 
+
+@media(max-width:1100px) {
+    .card-header{
+            display: flex;
+            flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    }
+}
 
 
 </style>
