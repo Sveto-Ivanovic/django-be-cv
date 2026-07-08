@@ -21,6 +21,11 @@ export type LogInRequest = {
     password: string;
 }
 
+export type NamespaceIndex = {
+  name: string,
+  model: string
+}
+
 export type UserInfo = {
   user_id: string;
   username: string | null;
@@ -37,6 +42,10 @@ export type UserInfo = {
     has_cohere_api_key: boolean;
     has_jina_api_key: boolean;
   };
+  supabase_namespaces_names: Array<string>;
+  pinecone_indexes_names: Array<string>;
+  supabase_namespaces: Array<NamespaceIndex>;
+     pinecone_indexes: Array<NamespaceIndex>;
 };
 
 

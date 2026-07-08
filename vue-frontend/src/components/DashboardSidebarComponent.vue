@@ -9,7 +9,7 @@
             <n-layout-sider class="sidebar"  collapse-mode="width" :collapsed="isMobile? true : undefined" :collapsed-width="60" :width="300" :show-trigger="!isMobile? 'bar' : false"
                 @update:collapsed="handleCollapse">
                 <Testora :icon-only="!isExpanded"></Testora>
-                <n-menu class="menu-wrapper" :options="menuOptions" @update:value="handleUpdateValue" />
+                <n-menu  dropdown-placement="'right-start'" class="menu-wrapper" :options="menuOptions" @update:value="handleUpdateValue" />
 
                  
                 <n-menu class="menu-wrapper-profile" :options="menuOptionsProfile" @update:value="handleUpdateValueProfile" />
@@ -55,7 +55,8 @@ import {
     ServerOutline as ServerIcon,
     StatsChartOutline as StatsChartIcon,
     PersonCircleOutline as PersonCircleIcon,
-    LogOutOutline as LogOutIcon
+    LogOutOutline as LogOutIcon,
+    CloudUploadOutline as UploadIcon
 } from '@vicons/ionicons5'
 import { NIcon } from 'naive-ui'
 import { computed, h, ref } from 'vue'
@@ -121,6 +122,20 @@ let menuOptions: MenuOption[] = [
                             ),
                         key: 'go-to-supabase-namespaces',
                         icon: renderIcon(ServerIcon)
+                    },
+                     {
+                        label: () =>
+                            h(
+                                RouterLink,
+                                {
+                                    to: {
+                                        name: 'SupabaseEmbed',
+                                    }
+                                },
+                                { default: () => 'Embed into Supabase' }
+                            ),
+                        key: 'go-to-supabase-embed',
+                        icon: renderIcon(UploadIcon)
                     }
                 ]
 
@@ -143,6 +158,20 @@ let menuOptions: MenuOption[] = [
                             ),
                         key: 'go-to-pinecone-namespaces',
                         icon: renderIcon(ServerIcon)
+                    },
+                     {
+                        label: () =>
+                            h(
+                                RouterLink,
+                                {
+                                    to: {
+                                        name: 'PineconeEmbed',
+                                    }
+                                },
+                                { default: () => 'Embed into Pinecone' }
+                            ),
+                        key: 'go-to-pinecone-embed',
+                        icon: renderIcon(UploadIcon)
                     }
                 ]
 
@@ -163,7 +192,7 @@ let menuOptions: MenuOption[] = [
         key: 'go-to-testcase',
         icon: renderIcon(StatsChartIcon)
 
-    }
+    },
 
 ]
 
@@ -237,7 +266,7 @@ const themeOverrides = {
 
 <style scoped>
 .sidebar {
-    height: 100vh;
+   height: 100%;
     border: 2px solid var(--sidebar-border-color);
     background-color: var(--sidebar-background-color);
     color: var(--sidebar-text-color);
@@ -292,7 +321,7 @@ const themeOverrides = {
 
 
 .menu-wrapper-profile {
-    height: 100%;
+    height: 150px;
     display: flex;
     align-items: center;
     flex-direction: column;

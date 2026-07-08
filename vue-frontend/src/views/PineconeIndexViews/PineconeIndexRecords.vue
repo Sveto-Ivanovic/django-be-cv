@@ -4,7 +4,7 @@
         <div>
             <h3>Pinecone Records for Index: {{ $route.params.index_name }}</h3>
             <button @click="deleteIndex()" class="delete-table"
-                :class="{ 'disable-button-class': fetchedData?.length == 0 || hasBeenClicked }"> Delete Index</button>
+                :class="{ 'disable-button-class':  hasBeenClicked || !(typeof $route.params.index_name === 'string' && userStore.userInfo?.pinecone_indexes_names.includes($route.params.index_name)) }"> Delete Index</button>
         </div>
 
         <div class="seperator"></div>
@@ -39,6 +39,7 @@ import { computed, h, ref } from 'vue';
 import LoadingComponent from '../../components/LoadingComponent.vue';
 import { NButton, type DataTableColumns } from 'naive-ui'
 import { useWindowSize } from '@vueuse/core';
+import { useUserStore } from '../../stores/user_store';
 
 
 const route = useRoute()
@@ -94,7 +95,6 @@ const filteredData = computed(() => {
         normalize(record.model).toLowerCase().includes(q) ||
         normalize(record.type).toLowerCase().includes(q)
     )
-    console.log(filteredVal)
 
     return filteredVal
 })
@@ -158,7 +158,7 @@ function createColumns(
                 } as any
             },
             render(row) {
-                return JSON.stringify(row.metadata)
+                return JSON.stringify(row.metadata, null, 2)
             }
         },
         { title: 'Model', key: 'model', width: 100, sorter: 'default' },
@@ -217,7 +217,6 @@ const columns = createColumns(
                   record_id: row.id as string
               
               })
-                console.log(response)
         }
     }
 )
@@ -227,13 +226,12 @@ const pagination = {
 const { mutateAsync: deleteIndexAPI } = globalAPI.userPinecone.deletePineconeIndex()
 const router = useRouter()
 const hasBeenClicked = ref(false)
-
+const userStore = useUserStore()
 async function deleteIndex() {
     hasBeenClicked.value = true
     const response = await deleteIndexAPI({
          index_name: route.params.index_name as string,
      })
-     console.log(response)
 
     router.push({
         name: 'PineconeIndexes'

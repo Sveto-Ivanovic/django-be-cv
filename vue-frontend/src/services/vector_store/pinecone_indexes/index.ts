@@ -4,12 +4,33 @@ import { APIResponse } from '../../axios_service/axiosTypes'
 import {
     GetPineconeIndexesResponse, GetPineconeIndexRecordsRequest, GetPineconeIndexRecordsResponse, DeletePineconeIndexRecordRequest,
     DeletePineconeIndexRequest, DeletePineconeIndexTextSearchRequest, DeletePineconeIndexTextSearchResponse, CreatePineconeIndexRequest,
-    CreatePineconeIndexResponse, CreatePineconeIndexTextSearchRequest, CreatePineconeIndexTextSearchResponse
+    CreatePineconeIndexResponse, CreatePineconeIndexTextSearchRequest, CreatePineconeIndexTextSearchResponse,
+    PineconeEmbedRequestForm, PineconeEmbedRequestText, PineconeEmbedResponse
 } from './types'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, UseMutationReturnType, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useUserStore } from '../../../stores/user_store'
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+function buildEmbedFormData(req: PineconeEmbedRequestForm): FormData {
+    const fd = new FormData()
+    fd.append('index_name', req.index_name)
+    fd.append('embed_model', req.embed_model)
+    fd.append('input_mode', req.input_mode)
+    
+    if (req.lexical_index_name) {
+        fd.append('lexical_index_name', req.lexical_index_name)
+    }
+
+    if (req.files)
+        req.files.forEach(file => fd.append('files', file))
+
+    if (req.chunk_config) {
+        fd.append('chunk_config', JSON.stringify(req.chunk_config))
+    }
+
+    return fd
+}
 
 
 const api = {
@@ -22,6 +43,11 @@ const api = {
     deletePineconeIndexTextsearch: (data: DeletePineconeIndexTextSearchRequest) => http.post<APIResponse<DeletePineconeIndexTextSearchResponse | string | null | undefined>>('embed/delete_textsearch_index/', data),
     createPineconeIndex: (data: CreatePineconeIndexRequest) => http.post<APIResponse<CreatePineconeIndexResponse | string | undefined | null>>('embed/create_pinecone_index/', data),
     createPineconeIndexTextsearch: (data: CreatePineconeIndexTextSearchRequest) => http.post<APIResponse<CreatePineconeIndexTextSearchResponse | string | undefined | null>>('embed/create_textsearch_index/', data),
+     embedPinecone: (data: PineconeEmbedRequestText) => http.post<APIResponse<PineconeEmbedResponse | string | undefined>>('embed/embed_items_into_pinecone/', data),
+    embedPineconeForm: (data: PineconeEmbedRequestForm) => http.post<APIResponse<PineconeEmbedResponse | string | undefined>>('embed/embed_items_into_pinecone/', buildEmbedFormData(data), {headers:{
+        'Content-Type': "multipart/form-data"
+    }})
+
 }
 
 
@@ -119,6 +145,32 @@ function createPineconeIndexTextsearch() {
 }
 
 
+
+function embedPineconeRecords(isMultiform: true): UseMutationReturnType<any, Error, PineconeEmbedRequestForm, unknown>
+function embedPineconeRecords(isMultiform: false): UseMutationReturnType<any, Error, PineconeEmbedRequestText, unknown>
+function embedPineconeRecords(isMultiform: boolean) {
+    const queryClient = useQueryClient()
+
+    if (isMultiform) {
+        return useMutation({
+            mutationKey: ['embed_pinecone_records_multiform'],
+            mutationFn: (req: PineconeEmbedRequestForm) => api.embedPineconeForm(req),
+            onSuccess: (data) => {
+                queryClient.invalidateQueries({ queryKey: ['pinecone_index_records', 'pinecone_indexes'] })
+            }
+        })
+    }
+
+    return useMutation({
+        mutationKey: ['embed_records_records_text'],
+        mutationFn: (req: PineconeEmbedRequestText) => api.embedPinecone(req),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['pinecone_index_records', 'pinecone_indexes'] })
+        }
+    })
+}
+
+
 export default {
     fetchPineconeIndexes,
     fetchPineconeIndexRecords,
@@ -127,5 +179,6 @@ export default {
     deletePineconeIndexTextsearch,
     createPineconeIndex,
     createPineconeIndexTextsearch,
+    embedPineconeRecords,
     api
 }

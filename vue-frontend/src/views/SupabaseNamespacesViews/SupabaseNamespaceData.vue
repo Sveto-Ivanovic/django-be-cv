@@ -159,7 +159,7 @@ function createColumns(
                 } as any
             },
             render(row) {
-                return JSON.stringify(row.metadata)
+               return JSON.stringify(row.metadata, null, 2)
             }
         },
         { title: 'Model', key: 'model', width: 100, sorter: 'default' },

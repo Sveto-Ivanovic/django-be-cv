@@ -241,7 +241,7 @@ async def process_batch_with_retry(
                 await asyncio.sleep(wait)
             else:
                 logger.error(f"Batch failed after {max_retries} attempts: {str(e)}")
-                raise RuntimeError(f"Embedding failed after {max_retries} retries") from e
+                raise RuntimeError(f"Embedding failed after {max_retries} retries: {str(e)}") from e
             
 def chunk_texts(data: List[str], chunk_size: int, overlap: int, embedding_model: str, input_metadata: List[dict] = []) -> List[str]:
     """

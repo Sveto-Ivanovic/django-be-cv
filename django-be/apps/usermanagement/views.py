@@ -15,8 +15,8 @@ from django_ratelimit.decorators import ratelimit
 from apps.core.utilis.orm_functions.user_related_orm import (
     get_user,
     get_user_api_keys,
-    log_user_action,
 )
+from apps.embed.models import UserVectorMetadata
 
 load_dotenv()
 
@@ -437,7 +437,36 @@ def get_user_info(request):
                    
 
             user_keys = get_user_api_keys(user_id)
-                 
+            user_embed_data = UserVectorMetadata.objects.filter(user_id=user_id)
+            
+            supabase_namespaces_names=[]
+            pinecone_indexes_names=[]
+            supabase_namespaces=[]
+            pinecone_indexes=[]
+            for item in user_embed_data:
+                if item.namespace_type == "supabase":
+                    supabase_namespaces_names.append(
+                        item.namespace
+                    )
+                    supabase_namespaces.append(
+                        {
+                            "name": item.namespace,
+                            "model": item.model,
+
+                        }
+                    )
+                elif item.namespace_type == "pinecone":
+                    pinecone_indexes_names.append(
+                        item.namespace
+                    )
+                    pinecone_indexes.append(
+                        {
+                            "name": item.namespace,
+                            "model": item.model,
+                            
+                        }
+                    )
+
             user_info = {
                 "user_id": str(usr_response.get("user_id")),
                 "username": usr_response.get("user_name"),
@@ -453,7 +482,11 @@ def get_user_info(request):
                     "has_mistral_api_key": True if user_keys.get("mistral_api_key") else False,
                     "has_cohere_api_key": True if user_keys.get("cohere_api_key") else False,
                     "has_jina_api_key": True if user_keys.get("jina_api_key") else False,
-                }
+                },
+                "supabase_namespaces_names": supabase_namespaces_names,
+                "pinecone_indexes_names": pinecone_indexes_names,
+                "supabase_namespaces": supabase_namespaces,
+                "pinecone_indexes": pinecone_indexes
             }
             
             return JsonResponse({"res_status": "success", "response": user_info}, status=200)

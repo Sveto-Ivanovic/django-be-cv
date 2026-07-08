@@ -88,7 +88,7 @@ async def process_batch_with_retry_texts(
                 await asyncio.sleep(wait)
             else:
                 logger.error(f"Batch failed after {max_retries} attempts (text): {str(e)}")
-                raise RuntimeError(f"Embedding failed after {max_retries} retries") from e   
+                raise RuntimeError(f"Embedding failed after {max_retries} retries: {str(e)}") from e   
             
 
 async def embed_pdf_files(embed_model: str, files, chunk_metadata: dict | None, config: dict, input_metadata: List[dict] = None, include_image_embedding: bool = False, api_keys: dict | None = None):

@@ -6,7 +6,7 @@ from ..loggerChatbot import logger
 from ..models import VectorSearch1536, VectorSearch2048, VectorSearch3072, UserVectorMetadata
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
-from apps.core.utilis.orm_functions.user_related_orm import get_user, get_user_async, fetch_pinecone_api_key_and_decode_aes, fetch_pinecone_api_key_and_decode_aes_async, log_user_action, log_user_action_async
+from apps.core.utilis.orm_functions.user_related_orm import get_user, log_user_action
 
 load_dotenv(override=True)
 
