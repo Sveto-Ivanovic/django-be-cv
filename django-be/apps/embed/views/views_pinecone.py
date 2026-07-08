@@ -13,7 +13,6 @@ from ..services.helperFunctions import load_json_file
 from ..services.pinecone.createPineconeIndex import create_pinecone
 from ..services.pinecone.fetchRecordsAsyncPinecone import fetch_batch, get_record_ids, batch_record_ids, process_batch_record_results, fetch_pinecone_ids
 from asgiref.sync import sync_to_async
-from ..models import UserVectorMetadata
 from apps.usermanagement.encryption_functions.aes import decode_aes_256
 from apps.usermanagement.models import  UserLogs
 from django_ratelimit.decorators import ratelimit
@@ -65,11 +64,27 @@ def create_pinecone_index(request):
             vector_size = int(vector_size)
             type_of_index = data.get("type_of_index", "dense")
 
+            if vector_size == 3072:
+                model = 'gemini-embedding-001'
+            elif vector_size == 2048:
+                model = 'jina-embeddings-v4'
+            elif vector_size == 1536:
+                model = 'embed-v4.0'
+            else:
+                raise ValueError('Supported dimensions are 3072, 1536 and 2048.')
+
             if not pc.has_index(index_name):
                 if type_of_index == "dense" or type_of_index == "sparse":
                     create_pinecone(pc, type_of_index, index_name, vector_size)
 
                     log_user_action(usr_obj, f"User Created Pinecone Index: {index_name}", "create_pinecone_index")
+                    user_vector_metadata = UserVectorMetadata.objects.create(
+                        user_id= user_id,
+                        model =  model,
+                        namespace_type = 'pinecone',
+                        namespace = index_name,
+                        row_count = 0,   
+                    )
                     return success_response({"index_name": index_name}, status=200)
 
                 else:
@@ -131,6 +146,14 @@ def create_textsearch_index(request):
 
             response = create_pinecone_textsearch_index(index_name, pinecone_api_key)
 
+            user_vector_metadata = UserVectorMetadata.objects.create(
+                        user_id= user_id,
+                        model =  "None",
+                        namespace_type = 'pinecone',
+                        namespace = index_name,
+                        row_count = 0,   
+                    )
+
             log_user_action(usr_obj, f"User Created Pinecone Text Search Index: {index_name}", "create_pinecone_textsearch_index")
 
             return success_response(response, status=200)
@@ -173,6 +196,8 @@ def delete_pinecone_text_search(request):
             index_name = data.get("index_name")
 
             response = delete_textsearch_index(index_name, pinecone_api_key)
+
+            UserVectorMetadata.objects.filter(user_id=user_id, namespace=index_name, namespace_type="pinecone").delete()
 
             log_user_action(usr_obj, f"User Deleted Pinecone Text Search Index: {index_name}", "delete_pinecone_textsearch_index")
 
@@ -263,6 +288,7 @@ def delete_pinecone_index(request):
             pc = Pinecone(api_key=pinecone_api_key)
             pc.delete_index(name=index_name)
 
+            UserVectorMetadata.objects.filter(user_id=user_id, namespace=index_name, namespace_type="pinecone").delete()
             log_user_action(usr_obj, f"User Deleted Pinecone Index: {index_name}", "delete_pinecone_index")
 
             usr_metadata = UserVectorMetadata.objects.filter(user_id=user_id, namespace=index_name, namespace_type="pinecone").first()

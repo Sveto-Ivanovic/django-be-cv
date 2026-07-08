@@ -59,3 +59,30 @@ export type DeleteSupabaseNamespaceResponse = {
     message: string;
     delete_count: string;
 }
+
+type ChunkConfigType = {
+    overlap: string;
+    chunk_size: string;
+}
+
+
+export type SupabaseEmbedRequestText = {
+    "namespace": string;
+    "embed_model": string;
+    "input_mode": string;
+    "data": string;
+    "chunk_config"?: ChunkConfigType;
+}
+
+export type SupabaseEmbedRequestForm = {
+    "namespace": string;
+    "embed_model": string;
+    "input_mode": string;
+    "files": Array<File>
+    "chunk_config"?: string;
+}
+
+export type SupabaseEmbedResponse = {
+    status: string;
+    message: string;
+}

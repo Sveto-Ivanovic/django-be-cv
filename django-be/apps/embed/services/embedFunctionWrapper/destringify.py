@@ -20,6 +20,9 @@ def destringify(data, input_metadata=None, chunk_metadata=None, include_image_em
     
     if chunk_metadata is not None and isinstance(chunk_metadata, str):
         chunk_metadata = json.loads(chunk_metadata)
+        if isinstance(chunk_metadata, str):
+            chunk_metadata = json.loads(chunk_metadata)
+
     
     if include_image_embedding is not None and isinstance(include_image_embedding, str):
         include_image_embedding = include_image_embedding.strip().lower() in ['true', '1', 'yes', 'on']

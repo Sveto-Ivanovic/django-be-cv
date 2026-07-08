@@ -79,3 +79,33 @@ export type DeletePineconeIndexRecordRequest = {
     index_name: string;
     record_id: string;
 }
+
+
+type ChunkConfigType = {
+    overlap: string;
+    chunk_size: string;
+}
+
+
+export type PineconeEmbedRequestText = {
+    "index_name": string;
+    "lexical_index_name"?: string;
+    "embed_model": string;
+    "input_mode": string;
+    "data": string;
+    "chunk_config"?: ChunkConfigType;
+}
+
+export type PineconeEmbedRequestForm = {
+    "index_name": string;
+    "embed_model": string;
+    "lexical_index_name"?: string;
+    "input_mode": string;
+    "files": Array<File>
+    "chunk_config"?: string;
+}
+
+export type PineconeEmbedResponse = {
+    status: string;
+    message: string;
+}
