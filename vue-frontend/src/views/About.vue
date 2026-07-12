@@ -53,6 +53,8 @@
             <span>Vector Databases</span>
             <span>AI Evaluation</span>
             <span>Web Development</span>
+            <span>Django</span>
+            <span>Vue.js</span>
           </div>
         </div>
 

@@ -17,7 +17,7 @@
         </div>
         <div class="pinecone-table" v-if="isSuccess && fetchedData && fetchedData?.length > 0 && !isFetching">
             <n-data-table :single-line="false" :columns="columns" :data="filteredData" :pagination="pagination"
-                :bordered="true" :scroll-x="width" />
+                :bordered="true" :scroll-x="tableScrollX" />
         </div>
         <div class="no-index_name" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching">
             <n-data-table :columns="columns" :data="fetchedData" :pagination="pagination" :bordered="true" />
@@ -219,6 +219,9 @@ const columns = createColumns(
               })
         }
     }
+)
+const tableScrollX = computed(() =>
+    columns.reduce((sum, col: any) => sum + (col.width ?? 100), 0)
 )
 const pagination = {
     pageSize: 5

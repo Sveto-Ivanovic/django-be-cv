@@ -26,7 +26,7 @@ def lexical_search_supabase(
     )
 
     vectors = table_object.filter(namespace=namespace, user_id=user_id).filter(search_vector=query_v).annotate(
-        rank=SearchRank('search_vector', query_v, weights=[0.1, 0.2, 0.4, 1], normalization=2)
+        rank=SearchRank('search_vector', query_v, weights=[0.1, 0.2, 0.4, 1.0], normalization=2)
         ).order_by('-rank')[:top_k]
 
 

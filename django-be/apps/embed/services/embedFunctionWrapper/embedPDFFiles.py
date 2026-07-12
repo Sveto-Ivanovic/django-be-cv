@@ -48,7 +48,8 @@ async def process_batch_with_retry_images(
                 await asyncio.sleep(wait)
             else:
                 logger.error(f"Batch failed after {max_retries} attempts (images): {str(e)}")
-                raise RuntimeError(f"Embedding failed after {max_retries} retries") from e
+                raise RuntimeError(f"Embedding failed after {max_retries} retries: {str(e)}") from e   
+         
             
 
 async def process_batch_with_retry_texts(

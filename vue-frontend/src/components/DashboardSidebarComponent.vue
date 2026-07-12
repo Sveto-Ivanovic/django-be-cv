@@ -56,7 +56,8 @@ import {
     StatsChartOutline as StatsChartIcon,
     PersonCircleOutline as PersonCircleIcon,
     LogOutOutline as LogOutIcon,
-    CloudUploadOutline as UploadIcon
+    CloudUploadOutline as UploadIcon,
+    AddCircleOutline as AddIcon
 } from '@vicons/ionicons5'
 import { NIcon } from 'naive-ui'
 import { computed, h, ref } from 'vue'
@@ -187,10 +188,25 @@ let menuOptions: MenuOption[] = [
                         name: 'TestCaseResults',
                     }
                 },
-                { default: () => 'Test Case Results' }
+                { default: () => 'Testcase Results' }
             ),
         key: 'go-to-testcase',
         icon: renderIcon(StatsChartIcon)
+
+    },
+    {
+        label: () =>
+            h(
+                RouterLink,
+                {
+                    to: {
+                        name: 'TestCaseCreate',
+                    }
+                },
+                { default: () => 'Create Testcase' }
+            ),
+        key: 'go-to-create-testcase',
+        icon: renderIcon(AddIcon)
 
     },
 
