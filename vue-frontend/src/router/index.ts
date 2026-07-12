@@ -109,6 +109,11 @@ const router = createRouter({
       name: 'TestComponent',
       component: () => import('../views/TestComponentPage.vue')
     },
+        {
+      path: '/chatbot',
+      name: 'ChatbotPage',
+      component: () => import('../views/Chatbot.vue')
+    },
 
     {
       path: '/:pathMatch(.*)*',

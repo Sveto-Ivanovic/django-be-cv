@@ -10,8 +10,22 @@ from .loggerChatbot import logger
 from asgiref.sync import sync_to_async
 from django.utils import timezone
 from apps.core.utilis.orm_functions.user_related_orm import get_user_async,  log_user_action_async, get_user_api_keys_async
+from apps.core.utilis.orm_functions.user_related_orm import (
+    get_user,
+    log_user_action,
+)
+from .models import ChatHistory, MessageHistory
 
 load_dotenv(override=True)
+
+
+def success_response(response, status=200):
+    return JsonResponse({"res_status": "success", "response": response}, status=status)
+
+
+def error_response(response, status=400):
+    return JsonResponse({"res_status": "error", "response": response}, status=status)
+
 
 
 @csrf_exempt
@@ -33,13 +47,13 @@ async def call_info_chatbot(request):
             user_id = usr_response["user_id"]
 
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400) 
+                return error_response("user_id is required", status=400) 
 
             user_api_keys = await get_user_api_keys_async(user_id)
             if user_api_keys:
                 logger.info(f"API keys retrieved for user {user_id}: {user_api_keys}")
             else:
-                return HttpResponse("No API keys found for the provided user ID.", status=404)
+                return error_response("No API keys found for the provided user ID.", status=404)
             
             question = data.get("question")
             supabase_metadata = data.get("supabase_metadata", None)
@@ -113,14 +127,99 @@ async def call_info_chatbot(request):
 
             res = await graph.ainvoke(inital_state)
             await log_user_action_async(usr_obj, f"User Asked Question: {question}", log_type="ask_question")
-            return JsonResponse({"status": "success", "response": res['answer'], "classifer": res['classifier'], "conv_id": res['conv_id']})
+            return success_response({ "response": res['answer'], "conv_id": res['conv_id']})
         
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
-            return JsonResponse({"status": "error", "message": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in call_chatbot endpoint: {str(e)}")
-            return JsonResponse({"status": "error", "message": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
    
-    return HttpResponse("Invalid request method. Please use POST to send a message.")
+    return error_response("Invalid request method. Please use POST to send a message.")
+
+
+
+@csrf_exempt
+def get_history(request):
+    if request.method=="GET":
+        try:
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return error_response("user_id is required", status=400)
+            
+            print('c1')
+            data = ChatHistory.objects.filter(user_id=user_id).values('id', 'history', 'created_at').order_by('-created_at')
+            data_list = list(data)
+            print('c1')
+
+            data_response=[]
+            for item in data_list:
+                if item.get('history') and len(item.get('history', [])) >0:
+                    data_response.append({
+                        'id': item.get('id',''),
+                        'name': item.get('history')[0].get('user','')
+                    })
+            print('c1')
+  
+
+            log_user_action(usr_obj, 'User asked for history of conversations.', 'fetch_chat_history')
+
+            return success_response(data_response)
+            
+
+        except json.JSONDecodeError:
+            print("Error decoding JSON")
+            return error_response("Invalid JSON payload", status=400)
+        except Exception as e:
+            print(f"Error occured in get_pinecone_indexes: {str(e)}")
+            return error_response(str(e), status=500)
+
+
+    return error_response("Invalid request method. Please use GET to send a message.")
+
+
+
+
+
+@csrf_exempt
+def get_conv_history(request):
+    if request.method=="GET":
+        try:
+            auth_id = request.auth_id if hasattr(request, 'auth_id') else None
+            if auth_id is None:
+                raise ValueError("Authentication ID is missing.")
+
+            usr_obj, usr_response = get_user(auth_id)
+            user_id = usr_response["user_id"]
+
+            if not user_id:
+                return error_response("user_id is required", status=400)
+            
+            conv_id = request.GET.get("conv_id")
+            if not conv_id:
+                return error_response("conv_id is required", status=400)
+            
+            data_res = MessageHistory.objects.filter(user_id=user_id, chat_id = conv_id).values('question', 'answer', 'created_at').order_by('created_at')
+            data_res = list(data_res)
+            log_user_action(usr_obj, 'User asked for history of conversation.', 'fetch_chat')
+
+            
+            return success_response(data_res)
+            
+        except json.JSONDecodeError:
+            print("Error decoding JSON")
+            return error_response("Invalid JSON payload", status=400)
+        except Exception as e:
+            print(f"Error occured in get_pinecone_indexes: {str(e)}")
+            return error_response(str(e), status=500)
+
+
+    return error_response("Invalid request method. Please use GET to send a message.")
