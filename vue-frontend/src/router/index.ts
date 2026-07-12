@@ -43,7 +43,17 @@ const router = createRouter({
     {
       path: '/testcases',
       name: 'TestCaseResults',
-      component: () => import('../views/TestCaseResults.vue')
+      component: () => import('../views/TestCasePages/TestCaseResults.vue')
+    },
+        {
+      path: '/create-testcase',
+      name: 'TestCaseCreate',
+      component: () => import('../views/TestCasePages/TestCaseCreate.vue')
+    },
+        {
+      path: '/testcase-statistics/:id',
+      name: 'TestCaseResultStatistics',
+      component: () => import('../views/TestCasePages/TestCaseResultStatistics.vue')
     },
 
     {

@@ -1,5 +1,5 @@
 import json
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 from dotenv import load_dotenv
@@ -46,6 +46,15 @@ import uuid
 from datetime import datetime, date
 from decimal import Decimal
 
+
+def success_response(response, status=200):
+    return JsonResponse({"res_status": "success", "response": response}, status=status)
+
+
+def error_response(response, status=400):
+    return JsonResponse({"res_status": "error", "response": response}, status=status)
+
+
 class ExtendedEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
@@ -73,7 +82,7 @@ def call_validation_text(request):
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                return error_response("user_id is required", status=400)
             
             print(f"Data request: {data}")
 
@@ -85,25 +94,22 @@ def call_validation_text(request):
             eval_model = data.get("eval_model", None)
 
             if data_to_evaluate is None:
-                return JsonResponse({"status": "error", "response": "to_evaluate field is required"}, status=400)
+                return error_response("to_evaluate field is required", status=400)
 
             metrics = validate_request_for_evaluation(data_to_evaluate)
             print(f"Required metrics {data_to_evaluate}")
 
             if supabase_metadata is None and pinecone_metadata is None:
-                return JsonResponse({"status": "error", "response": "to call this endpoint, metadata for pinecone or supabase vector store it required."}, status=400)
+                return error_response("to call this endpoint, metadata for pinecone or supabase vector store it required.", status=400)
 
             if llm_model is None:
-                return JsonResponse({"status": "error", "response": "llm_model for answering questions and evaluating required."}, status=400)
+                return error_response("llm_model for answering questions and evaluating required.", status=400)
             
 
             keys = get_user_api_keys(user_id)
 
             if not keys:
-                return JsonResponse(
-                    {"status": "error", "response": "No API keys found for the user."},
-                    status=404,
-                )
+                return error_response("No API keys found for the user.", status=404)
             print("Fetched keys successfully")
 
             ####### Fetching context segment
@@ -357,17 +363,17 @@ def call_validation_text(request):
                 "aggregate_id": str(record_id),
             }
 
-            return JsonResponse({"status": "success", "response": response}, status=200)
+            return success_response(response, status=200)
         
         except json.JSONDecodeError:
             print("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             print(f"Error occured in call_validation_text: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
    
-    return HttpResponse("Invalid request method. Please use POST to send a request.")
+    return error_response("Invalid request method. Please use POST to send a request.")
 
 @csrf_exempt
 @ratelimit(key='ip', rate='4/m', method='POST', block=True)
@@ -386,7 +392,7 @@ def call_validation_json(request):
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                return error_response("user_id is required", status=400)
 
             testcase_name = data.get("testcase_name", None)
             llm_model     = data.get("llm_model", None)
@@ -395,40 +401,34 @@ def call_validation_json(request):
             supabase_metadata = data.get("supabase_metadata", None)
             if supabase_metadata:
                 supabase_metadata = json.loads(supabase_metadata)
+                if isinstance(supabase_metadata, str):
+                    supabase_metadata = json.loads(supabase_metadata)
 
             pinecone_metadata = data.get("pinecone_metadata", None)
             if pinecone_metadata:
                 pinecone_metadata = json.loads(pinecone_metadata)
+                if isinstance(pinecone_metadata, str):
+                    pinecone_metadata = json.loads(pinecone_metadata)
 
             nearest_neighbor_settings_raw = data.get("nearest_neighbor_settings", None)
             nearest_neighbor_settings = json.loads(nearest_neighbor_settings_raw) if nearest_neighbor_settings_raw else {}
+            if isinstance(nearest_neighbor_settings, str):
+                    nearest_neighbor_settings = json.loads(nearest_neighbor_settings)
             
             # load json file
             json_file = request.FILES.get("to_evaluate", None)
             if json_file is None:
-                return JsonResponse(
-                    {"status": "error", "response": "to_evaluate file is required (upload a .json file)."},
-                    status=400,
-                )
+                return error_response("to_evaluate file is required (upload a .json file).", status=400)
             if not json_file.name.endswith(".json"):
-                return JsonResponse(
-                    {"status": "error", "response": "to_evaluate must be a .json file."},
-                    status=400,
-                )
+                return error_response("to_evaluate must be a .json file.", status=400)
 
             try:
                 data_to_evaluate = json.loads(json_file.read().decode("utf-8"))
             except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                return JsonResponse(
-                    {"status": "error", "response": f"Failed to parse to_evaluate JSON file: {str(e)}"},
-                    status=400,
-                )
+                return error_response(f"Failed to parse to_evaluate JSON file: {str(e)}", status=400)
 
             if not isinstance(data_to_evaluate, list):
-                return JsonResponse(
-                    {"status": "error", "response": "to_evaluate JSON must be a list of evaluation objects."},
-                    status=400,
-                )
+                return error_response("to_evaluate JSON must be a list of evaluation objects.", status=400)
             
 
 
@@ -438,23 +438,14 @@ def call_validation_json(request):
             metrics = validate_request_for_evaluation(data_to_evaluate)
 
             if supabase_metadata is None and pinecone_metadata is None:
-                return JsonResponse(
-                    {"status": "error", "response": "Metadata for pinecone or supabase vector store is required."},
-                    status=400,
-                )
+                return error_response("Metadata for pinecone or supabase vector store is required.", status=400)
 
             if llm_model is None:
-                return JsonResponse(
-                    {"status": "error", "response": "llm_model for answering questions and evaluating required."},
-                    status=400,
-                )
+                return error_response("llm_model for answering questions and evaluating required.", status=400)
 
             keys = get_user_api_keys(user_id)
             if not keys:
-                return JsonResponse(
-                    {"status": "error", "response": "No API keys found for the user."},
-                    status=404,
-                )
+                return error_response("No API keys found for the user.", status=404)
             print("Fetched keys successfully")
 
             ####### Fetching context
@@ -574,7 +565,7 @@ def call_validation_json(request):
                 results.append({
                     "user_input": element.get("question"),
                     "reference": element.get("reference_answer"),
-                    "retrieved_contexts": [element.get("context")],
+                    "retrieved_context_text": [element.get("context")],
                     "response": element.get("answer"),
                     "retrieved_context_array": json.dumps(element.get("array_context"), cls=ExtendedEncoder),
 
@@ -641,21 +632,20 @@ def call_validation_json(request):
                 "status": "success",
                 "response": "Successfully evaluated the dataset.",
                 "aggregate": aggregated_results,
-                "records": results,
                 "total": len(results),
                 "aggregate_id": str(record_id),
             }
 
-            return JsonResponse({"status": "success", "response": response}, status=200)
+            return success_response(response, status=200)
 
         except json.JSONDecodeError:
             print("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             print(f"Error occurred in call_validation_json: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-    return HttpResponse("Invalid request method. Please use POST to send a request.")
+    return error_response("Invalid request method. Please use POST to send a request.")
 
 
 
@@ -672,24 +662,24 @@ def get_eval_aggregates(request):
             user_id = usr_response["user_id"]
 
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400) 
+                return error_response("user_id is required", status=400)
             
             data_response = TestCaseDBAggregate.objects.filter(user_id=user_id).values("id", "test_case_name", "qa_model_used", "validation_model_used", "aggregate_metadata", "created_at", "number_of_testcases") 
             response = list(data_response)
 
             log_user_action(usr_obj, f"User Fetched List of Aggregate evals", "fetch_supabase_tables")
           
-            return JsonResponse({"status": "sucess", "response":response}, status=200)
+            return success_response(response, status=200)
         
         except json.JSONDecodeError:
             print("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             print(f"Error occured in get_pinecone_indexes: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
    
-    return HttpResponse("Invalid request method. Please use GET to send a request.")
+    return error_response("Invalid request method. Please use GET to send a request.")
 
 @csrf_exempt
 @ratelimit(key='ip', rate='10/m', method='GET', block=True)
@@ -704,11 +694,11 @@ def get_eval_testcases(request):
             user_id = usr_response["user_id"]
 
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                return error_response("user_id is required", status=400)
 
             aggregate_id = request.GET.get("aggregate_id")
             if not aggregate_id:
-                return JsonResponse({"status": "error", "response": "aggregate_id is required"}, status=400)
+                return error_response("aggregate_id is required", status=400)
 
             data_response = TestCaseDB.objects.filter(
                 user_id=user_id,
@@ -726,16 +716,16 @@ def get_eval_testcases(request):
 
             log_user_action(usr_obj, f"User Fetched List of Test Cases for aggregate {aggregate_id}", "fetch_testcases")
 
-            return JsonResponse({"status": "success", "response": response}, status=200)
+            return success_response(response, status=200)
 
         except json.JSONDecodeError:
             print("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             print(f"Error occurred in get_eval_testcases: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-    return HttpResponse("Invalid request method. Please use GET to send a request.")
+    return error_response("Invalid request method. Please use GET to send a request.")
 
 
 @csrf_exempt
@@ -756,15 +746,15 @@ def delete_eval_aggregate(request):
             user_id = usr_response["user_id"]
 
             if not user_id:
-                return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
+                return error_response("user_id is required", status=400)
 
             aggregate_id = data.get("aggregate_id")
             if not aggregate_id:
-                return JsonResponse({"status": "error", "response": "aggregate_id is required"}, status=400)
+                return error_response("aggregate_id is required", status=400)
 
             aggregate = TestCaseDBAggregate.objects.filter(id=aggregate_id, user_id=user_id).first()
             if not aggregate:
-                return JsonResponse({"status": "error", "response": "Aggregate not found or unauthorized"}, status=404)
+                return error_response("Aggregate not found or unauthorized", status=404)
 
             aggregate.delete()
 
@@ -774,14 +764,13 @@ def delete_eval_aggregate(request):
 
             log_user_action(usr_obj, f"User Deleted Aggregate {aggregate_id}", "delete_aggregate")
 
-            return JsonResponse({"status": "success", "response": f"Aggregate {aggregate_id} deleted successfully"}, status=200)
+            return success_response(f"Aggregate {aggregate_id} deleted successfully", status=200)
 
         except json.JSONDecodeError:
             print("Error decoding JSON")
-            return JsonResponse({"status": "error", "response": "Invalid JSON payload"}, status=400)
+            return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             print(f"Error occurred in delete_eval_aggregate: {str(e)}")
-            return JsonResponse({"status": "error", "response": str(e)}, status=401)
+            return error_response(str(e), status=500)
 
-    return HttpResponse("Invalid request method. Please use DELETE to send a request.")
-
+    return error_response("Invalid request method. Please use DELETE to send a request.")

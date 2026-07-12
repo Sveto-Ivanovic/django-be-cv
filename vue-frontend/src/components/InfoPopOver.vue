@@ -30,7 +30,7 @@ const props = withDefaults(
 
 const popoverWidth = computed(() =>
   typeof window !== 'undefined' && window.innerWidth < 480
-    ? Math.min(window.innerWidth - 40, 320)
+    ? Math.min(window.innerWidth - 150, 320)
     : 420
 );
 </script>
@@ -65,4 +65,5 @@ const popoverWidth = computed(() =>
   overflow: auto;
   max-height: 360px;
 }
+
 </style>

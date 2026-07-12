@@ -39,7 +39,9 @@ let showMenuBar = ref(true)
 let envelop_with_sidebar = ref(false)
 const allowed_routes = ['Home', 'Contact', 'About']
 const dashboard_routes = ['Dashboard', 'Profile', 'SupabaseEmbed', 'PineconeEmbed', 
-'SupabaseNameSpaces', 'PineconeIndexes', 'SupabaseNamespaceRecords', 'PineconeIndexRecords', 'PineconeCreateIndex']
+'SupabaseNameSpaces', 'PineconeIndexes', 'SupabaseNamespaceRecords', 'PineconeIndexRecords', 'PineconeCreateIndex', 'TestCaseResults',
+'TestCaseCreate', 'TestCaseResultStatistics'
+]
 const userStore = useUserStore()
 
 watchEffect(() => {

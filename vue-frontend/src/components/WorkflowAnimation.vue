@@ -81,7 +81,6 @@ import { ref, onMounted, watchEffect, computed } from "vue";
 import VueApexCharts from 'vue3-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { useWindowSize } from '@vueuse/core'
-import ApexLegendFormatterOpts from 'apexcharts'
 
 const options = ref<ApexOptions>({
     chart: { type: 'bar',
