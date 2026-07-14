@@ -5,14 +5,17 @@
         <div class="chatbot-screen-wrapper">
 
             <div class="chatbot-screen">
+                <div class="start-new-chat" v-if="messages.length === 0">
+                    Hello {{ userStore.userInfo?.name }} what question do you have for me?
+                </div>
                 <div v-for="value in messages" class="qa_item">
                     <div class="question">{{ value.question }}</div>
-                    <div class="answer">
-                        <div v-if="value.answer && value.answer !== '' && value.answer !== null">
+                    <div v-if="value.answer && value.answer !== '' && value.answer !== null" class="answer">
+                        <div>
                             {{ value.answer ? value.answer : '' }}
                         </div>
-                        <QALoader circle_size="20px" v-else-if="value.question && value.question !== ''"></QALoader>
                     </div>
+                    <QALoader circle_size="20px" v-if="value.answer === undefined || value.answer === null"></QALoader>
 
                 </div>
 
@@ -44,7 +47,7 @@
         <div class="chatbot-input">
             <textarea v-model="query" placeholder="Ask question ..." @keydown.enter.exact.prevent
                 @keydown.enter.exact="handleEnter" @keydown.enter.shift.exact="handleShiftEnter"></textarea>
-            <button @click="handleSendMessage">
+            <button @click="handleSendMessage" :class="isDisabled ? 'btn-disabled' : ''">
                 <n-icon size="15">
                     <Send />
                 </n-icon>
@@ -79,10 +82,120 @@
             <div class="seperator"></div>
 
             <div class="chose-model">
-                Chose Model:
+                <label class="field-label">Chose Model</label>
                 <n-select v-model:value="selectedModel" :options="llmModelOptions" />
 
+
+
             </div>
+
+            <div class="seperator"></div>
+
+            <div class="rag-config-wrapper">
+                <div class="form-section">
+                    <div class="field">
+                        <label class="field-label">Vector Store Settings</label>
+                        <n-radio-group v-model:value="selectVectorStore" name="vectorStoreGroup" class="radio-group">
+                            <n-space>
+                                <n-radio value="supabase">Supabase</n-radio>
+                                <n-radio value="pinecone">Pinecone</n-radio>
+                            </n-space>
+                        </n-radio-group>
+                    </div>
+
+                    <div v-if="selectVectorStore === 'supabase'">
+                        <div class="inline-fields indented-field">
+                            <div class="field">
+                                <label class="field-label">Select Namespace</label>
+                                <n-select v-model:value="supabaseNamespaceSelected" placeholder="Select Namespace:"
+                                    :options="namespaceOptions" />
+                            </div>
+
+                            <div class="field half-width">
+                                <label class="field-label">Top K</label>
+                                <n-input v-model:value="supabaseTopK" placeholder="0" />
+                            </div>
+                        </div>
+
+                        <div class="inline-fields indented-field">
+                            <div class="field">
+                                <label class="field-label">Select Mode</label>
+                                <n-select v-model:value="supabaseMode" placeholder="Select Mode:"
+                                    :options="modeOptions" />
+                            </div>
+
+                            <div class="field">
+                                <label class="field-label">Semantic Search Mode:</label>
+                                <n-select v-model:value="supabaseSemanticSearchMode" placeholder="Semantic Search Mode:"
+                                    :options="semanticSearchOptions" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="selectVectorStore === 'pinecone'">
+                        <div class="inline-fields indented-field">
+                            <div class="field">
+                                <label class="field-label">Select Index Name:</label>
+                                <n-select v-model:value="pineconeIndexNameSelected" placeholder="Select Index Name:"
+                                    :options="indexOptionsDense" />
+                            </div>
+
+                            <div class="field half-width">
+                                <label class="field-label">Top K</label>
+                                <n-input v-model:value="pineconeTopK" placeholder="0" />
+                            </div>
+                        </div>
+
+                        <div class="inline-fields indented-field">
+                            <div class="field">
+                                <label class="field-label">Select Mode</label>
+                                <n-select v-model:value="pineconeMode" placeholder="Select Mode:"
+                                    :options="modeOptions" />
+                            </div>
+
+                            <div class="field" v-if="pineconeMode !== 'semantic'">
+                                <label class="field-label">Input Lexical Index Name</label>
+                                <n-select v-model:value="pineconeLexicalIndexName" placeholder="Select Lexical Index:"
+                                    :options="indexOptionsLexical" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">Fetch Neighbor Settings</h3>
+
+                    <div class="field">
+                        <label class="field-label">Fetch Neighbors:</label>
+                        <n-radio-group v-model:value="includeNeighbors" name="neighborsGroup" class="radio-group">
+                            <n-space>
+                                <n-radio value="yes">Yes</n-radio>
+                                <n-radio value="no">No</n-radio>
+                            </n-space>
+                        </n-radio-group>
+                    </div>
+
+                    <div v-if="includeNeighbors === 'yes'">
+                        <div class="field indented-field">
+                            <label class="field-label">Get All Chunks</label>
+                            <n-select v-model:value="getAllNeighborChunks" placeholder=""
+                                :options="fetchAllChunksOptions" />
+                        </div>
+
+                        <div class="field indented-field">
+                            <label class="field-label">Nearest Num. of Chunks</label>
+                            <n-input v-model:value="nearestChunksN" placeholder="" />
+                        </div>
+
+                        <div class="field indented-field">
+                            <label class="field-label">Fetch Neighbor Pages</label>
+                            <n-input v-model:value="nearestPageOrArrayMembersN" placeholder="" />
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
 
 
         </n-card>
@@ -97,13 +210,31 @@ import { useUserStore } from '../stores/user_store';
 import QALoader from '../components/QALoader.vue';
 import { globalAPI } from '../services';
 import LoadingComponent from '../components/LoadingComponent.vue';
-import { ChatbotRequest, ChatbotResponse } from '../services/chatbot/types';
+import { ChatbotRequest, ChatbotResponse, NearestNeighborSetting } from '../services/chatbot/types';
 
 const conversation_id = ref("")
 const query = ref('')
 const showModal = ref(false)
 const userStore = useUserStore()
 const selectedModel = ref('')
+const isDisabled = ref(false)
+
+const selectVectorStore = ref('supabase')
+const supabaseNamespaceSelected = ref(null)
+const supabaseTopK = ref('3')
+const supabaseMode = ref(null)
+const supabaseSemanticSearchMode = ref(null)
+
+const pineconeIndexNameSelected = ref(null)
+const pineconeTopK = ref('3')
+const pineconeMode = ref(null)
+const pineconeLexicalIndexName = ref(null)
+
+const includeNeighbors = ref('no')
+const getAllNeighborChunks = ref('no')
+const nearestChunksN = ref('0')
+const nearestPageOrArrayMembersN = ref('0')
+
 const llmModelOptions = computed(() => {
 
     let options = []
@@ -141,6 +272,58 @@ const llmModelOptions = computed(() => {
     return options
 
 })
+const namespaceOptions = userStore.userInfo?.supabase_namespaces_names.map(
+    v => ({
+        label: v,
+        value: v
+    })
+)
+
+const modeOptions = ['semantic', 'hybrid', 'lexical'].map(
+    v => ({
+        label: v,
+        value: v
+    })
+)
+
+const fetchAllChunksOptions = ['yes', 'no'].map(
+    v => ({
+        label: v,
+        value: v
+    })
+)
+
+const semanticSearchOptions = ['cosine', 'euclidean', 'inner_product'].map(
+    v => ({
+        label: v,
+        value: v
+    })
+)
+
+console.log(userStore.userInfo)
+const indexOptionsDense = computed(() => {
+    const denseOptions = userStore.userInfo?.pinecone_indexes
+        .filter((item) => item.model !== "None")
+        .map((item) => ({
+            label: item.name,
+            value: item.name
+        }))
+    return denseOptions
+})
+
+const indexOptionsLexical = computed(() => {
+    const lexicalOptions = userStore.userInfo?.pinecone_indexes
+        .filter((item) => item.model === "None")
+        .map((item) => ({
+            label: item.name,
+            value: item.name
+        }))
+    return lexicalOptions
+})
+
+
+
+
 const { data, isFetched, isFetching, isSuccess, seedMessages } = globalAPI.userChatbot.getChatMessages(computed(() => ({ conv_id: conversation_id.value })))
 const { data: dataHist, isFetched: isFetchedHist, isFetching: isFetchingHist, isSuccess: isSuccessHist, isError: isErrorHist } = globalAPI.userChatbot.getChatbotHistory()
 const { mutateAsync: callChatbot } = globalAPI.userChatbot.callChatbot()
@@ -165,7 +348,7 @@ watch(data, (newVal) => {
         return
     }
     if (newVal?.data.response && typeof newVal.data.response !== 'string') {
-        messages.value = newVal.data.response
+        messages.value = JSON.parse(JSON.stringify(newVal.data.response))
     } else {
         messages.value = []
     }
@@ -201,13 +384,17 @@ function handleShiftEnter(e: KeyboardEvent) {
 
 
 async function handleSendMessage() {
+    // check if we have query
+    isDisabled.value = true
     console.log(query)
     if (query.value.trim() === '') {
         alert("Query cant be empty")
+        isDisabled.value = false
         return
 
     }
 
+    // manage states
     let data: ChatbotRequest = {
         question: query.value,
         llm_model: selectedModel.value
@@ -215,10 +402,73 @@ async function handleSendMessage() {
     messages.value.push({
         question: query.value
     })
+    query.value = ''
 
     if (conversation_id.value !== '') {
         data['conv_id'] = conversation_id.value
     }
+
+    let neighbor_config: NearestNeighborSetting | undefined = undefined
+    if (includeNeighbors.value === 'yes') {
+
+        neighbor_config = {
+            get_all_neighbor_chunks: getAllNeighborChunks.value === 'yes' ? true : false,
+            nearest_chunks_n:  !Number.isNaN(nearestChunksN.value) && Number(nearestChunksN.value) >= 0  ? Number(nearestChunksN.value) : 0,
+            nearest_page_or_array_members_n: !Number.isNaN(nearestPageOrArrayMembersN.value) && Number(nearestPageOrArrayMembersN.value) >= 0 ? Number(nearestPageOrArrayMembersN.value) : 0,
+
+        }
+    }
+
+
+    // supabase & pinecone configs
+    if (selectVectorStore.value === 'supabase' && supabaseNamespaceSelected.value !== null) {
+        const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == supabaseNamespaceSelected.value)[0].model
+        if (model === undefined) {
+            console.log("Undefined mode")
+            return
+        }
+
+        let tableName;
+
+        if (model === "gemini-embedding-001") {
+            tableName = "vector_search_3072";
+        } else if (model === "jina-embeddings-v4") {
+            tableName = "vector_search_2048";
+        } else if (model === "embed-v4.0") {
+            tableName = "vector_search_1536";
+        } else {
+            console.log('invalid model')
+            return
+        }
+        data['supabase_metadata'] = {
+            namespace: supabaseNamespaceSelected.value,
+            top_k: !Number.isNaN(supabaseTopK.value) && Number(supabaseTopK.value) >= 3 ? Number(supabaseTopK.value) : 3,
+            mode: supabaseMode.value ?? 'semantic',
+            semantic_search_mode: supabaseSemanticSearchMode.value ?? 'cosine',
+            table_name: tableName,
+            model: model,
+            nearest_neighbor_settings: neighbor_config
+        }
+    }
+    else if (selectVectorStore.value === 'pinecone' && pineconeIndexNameSelected.value !== null) {
+        console.log(pineconeIndexNameSelected.value)
+        const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == pineconeIndexNameSelected.value)[0].model
+        if (model === undefined) {
+            console.log("Undefined mode")
+            return
+        }
+        console.log(model)
+        data['pinecone_metadata'] = {
+            index_name: pineconeIndexNameSelected.value,
+            top_k:!Number.isNaN(pineconeTopK.value)&& Number(pineconeTopK.value) >= 3  ? Number(pineconeTopK.value) : 3,
+            mode: supabaseMode.value ?? 'semantic',
+            index_name_lexical: pineconeLexicalIndexName.value !== null ? pineconeLexicalIndexName.value : undefined,
+            model: model,
+            nearest_neighbor_settings: neighbor_config
+        }
+    }
+
+
 
     try {
         const response = await callChatbot(data)
@@ -242,10 +492,12 @@ async function handleSendMessage() {
             } as any)
             conversation_id.value = response.data.response?.conv_id
         }
+        isDisabled.value = false
 
 
     }
     catch (e) {
+        isDisabled.value = false
         console.log(e)
     }
 
@@ -413,15 +665,27 @@ function newChat() {
     color: #1e293b;
 }
 
+.modal-wrapper {
+    overflow-y: auto;
+    height: min(800px, 90vh);
+    overflow-x: hidden;
+}
+
 .modal-wrapper :deep(.n-card-content) {
     width: 100%;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    height: min(800px, 90vh);
+
 }
 
 .chose-model {
     padding-top: 16px;
+    padding-bottom: 16px;
+
 }
 
 .seperator {
@@ -433,12 +697,13 @@ function newChat() {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    width: 100%;
     align-items: center;
 }
 
 .chatbot-screen {
     height: 80vh;
-    width: min(1200px, 90%);
+    width: min(800px, 90%);
     overflow-y: auto;
     padding-bottom: 8px;
 }
@@ -455,9 +720,11 @@ function newChat() {
     background-color: #4f6bff;
     color: #fff;
     border-radius: 16px 16px 4px 16px;
-    max-width: min(300px, 78%);
+    max-width: min(350px, 78vh);
     margin-left: 20%;
     padding: 10px 14px;
+        white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 .answer {
@@ -465,15 +732,122 @@ function newChat() {
     background-color: #f1f1f1;
     color: #1e1e1e;
     border-radius: 16px 16px 16px 4px;
-    max-width: min(500px, 78%);
+    max-width: min(600px, 78vh);
     margin-right: 20%;
     padding: 10px 14px;
+        white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 .seperator_qa {
     height: 2px;
     border-bottom: 2px solid #888;
-    width: min(1200px, 90%);
+    width: min(800px, 90%);
 
+}
+
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.start-new-chat {
+    text-align: center;
+    padding: 64px;
+    font-size: 32px;
+    font-weight: 500;
+    background: linear-gradient(90deg, rgba(72, 23, 145, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+.rag-config-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 4px 16px;
+    box-sizing: border-box;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.section-title {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.field-label {
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+.radio-group {
+    display: flex;
+}
+
+.inline-fields {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
+.indented-field {
+    padding-left: 12px;
+    border-left: 2px solid rgba(128, 128, 128, 0.2);
+    margin-top: 4px;
+}
+
+.half-width {
+    flex: 0 0 30%;
+    max-width: 30%;
+}
+
+
+@media (max-width: 640px) {
+    .inline-fields {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .half-width {
+        max-width: 100%;
+        flex: 1;
+    }
+
+    .indented-field {
+        padding-left: 8px;
+    }
+
+    .rag-config-wrapper {
+        max-height: 75vh;
+        gap: 20px;
+    }
+}
+
+@media(max-width: 800px) {
+    .start-new-chat {
+        font-size: 18px;
+
+    }
 }
 </style>

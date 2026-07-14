@@ -1,3 +1,9 @@
+export type NearestNeighborSetting = {
+    get_all_neighbor_chunks: boolean;
+    nearest_chunks_n: number;
+    nearest_page_or_array_members_n: number;
+}
+
 export type SupabaseMetadata = {
     namespace: string;
     top_k: number;
@@ -5,6 +11,7 @@ export type SupabaseMetadata = {
     table_name: string;
     model: string;
     semantic_search_mode: string;
+    nearest_neighbor_settings?: NearestNeighborSetting;
 }
 
 export type PineconeMetadata = {
@@ -13,6 +20,7 @@ export type PineconeMetadata = {
     mode: string;
     index_name_lexical?: string;
     model: string;
+    nearest_neighbor_settings?: NearestNeighborSetting;
 }
 
 
