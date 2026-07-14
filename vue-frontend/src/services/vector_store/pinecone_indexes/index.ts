@@ -1,13 +1,14 @@
-import { get } from 'http'
 import http from '../../axios_service/api'
-import { APIResponse } from '../../axios_service/axiosTypes'
-import {
+import type { APIResponse } from '../../axios_service/axiosTypes'
+import type {
     GetPineconeIndexesResponse, GetPineconeIndexRecordsRequest, GetPineconeIndexRecordsResponse, DeletePineconeIndexRecordRequest,
     DeletePineconeIndexRequest, DeletePineconeIndexTextSearchRequest, DeletePineconeIndexTextSearchResponse, CreatePineconeIndexRequest,
     CreatePineconeIndexResponse, CreatePineconeIndexTextSearchRequest, CreatePineconeIndexTextSearchResponse,
     PineconeEmbedRequestForm, PineconeEmbedRequestText, PineconeEmbedResponse
 } from './types'
-import { useMutation, UseMutationReturnType, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import type { UseMutationReturnType } from '@tanstack/vue-query'
+
 import { useUserStore } from '../../../stores/user_store'
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

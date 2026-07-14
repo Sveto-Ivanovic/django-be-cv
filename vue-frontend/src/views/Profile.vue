@@ -180,7 +180,7 @@
 import { ref } from 'vue';
 import { globalAPI } from '../services';
 import { useUserStore } from '../stores/user_store';
-import { FormInst } from 'naive-ui';
+import type { FormInst } from 'naive-ui';
 
 
 const userStore = useUserStore()

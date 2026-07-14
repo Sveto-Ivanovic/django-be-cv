@@ -210,7 +210,7 @@ import { useUserStore } from '../stores/user_store';
 import QALoader from '../components/QALoader.vue';
 import { globalAPI } from '../services';
 import LoadingComponent from '../components/LoadingComponent.vue';
-import { ChatbotRequest, ChatbotResponse, NearestNeighborSetting } from '../services/chatbot/types';
+import type { ChatbotRequest, ChatbotResponse, NearestNeighborSetting } from '../services/chatbot/types';
 
 const conversation_id = ref("")
 const query = ref('')
@@ -357,7 +357,7 @@ watch(data, (newVal) => {
 watch(
     llmModelOptions,
     (newOptions) => {
-        if (newOptions.length && !selectedModel.value) {
+        if (newOptions.length >= 1 && newOptions[0] && !selectedModel.value) {
             selectedModel.value = newOptions[0].value
         }
     },
@@ -413,7 +413,7 @@ async function handleSendMessage() {
 
         neighbor_config = {
             get_all_neighbor_chunks: getAllNeighborChunks.value === 'yes' ? true : false,
-            nearest_chunks_n:  !Number.isNaN(nearestChunksN.value) && Number(nearestChunksN.value) >= 0  ? Number(nearestChunksN.value) : 0,
+            nearest_chunks_n: !Number.isNaN(nearestChunksN.value) && Number(nearestChunksN.value) >= 0 ? Number(nearestChunksN.value) : 0,
             nearest_page_or_array_members_n: !Number.isNaN(nearestPageOrArrayMembersN.value) && Number(nearestPageOrArrayMembersN.value) >= 0 ? Number(nearestPageOrArrayMembersN.value) : 0,
 
         }
@@ -422,7 +422,7 @@ async function handleSendMessage() {
 
     // supabase & pinecone configs
     if (selectVectorStore.value === 'supabase' && supabaseNamespaceSelected.value !== null) {
-        const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == supabaseNamespaceSelected.value)[0].model
+        const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == supabaseNamespaceSelected.value)[0]?.model
         if (model === undefined) {
             console.log("Undefined mode")
             return
@@ -452,7 +452,7 @@ async function handleSendMessage() {
     }
     else if (selectVectorStore.value === 'pinecone' && pineconeIndexNameSelected.value !== null) {
         console.log(pineconeIndexNameSelected.value)
-        const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == pineconeIndexNameSelected.value)[0].model
+        const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == pineconeIndexNameSelected.value)[0]?.model
         if (model === undefined) {
             console.log("Undefined mode")
             return
@@ -460,7 +460,7 @@ async function handleSendMessage() {
         console.log(model)
         data['pinecone_metadata'] = {
             index_name: pineconeIndexNameSelected.value,
-            top_k:!Number.isNaN(pineconeTopK.value)&& Number(pineconeTopK.value) >= 3  ? Number(pineconeTopK.value) : 3,
+            top_k: !Number.isNaN(pineconeTopK.value) && Number(pineconeTopK.value) >= 3 ? Number(pineconeTopK.value) : 3,
             mode: supabaseMode.value ?? 'semantic',
             index_name_lexical: pineconeLexicalIndexName.value !== null ? pineconeLexicalIndexName.value : undefined,
             model: model,
@@ -474,9 +474,13 @@ async function handleSendMessage() {
         const response = await callChatbot(data)
         console.log(response)
 
-        const lenofMessages = messages.value.length
-        if (typeof response.data.response === 'object') {
-            messages.value[lenofMessages - 1]['answer'] = response.data.response.response
+        const lastMessage = messages.value[messages.value.length - 1]
+
+        if (
+            typeof response.data.response === 'object' &&
+            lastMessage
+        ) {
+            lastMessage.answer = response.data.response.response
         }
 
         if (conversation_id.value === '' && typeof response.data.response === 'object' && response.data.response?.conv_id) {
@@ -723,7 +727,7 @@ function newChat() {
     max-width: min(350px, 78vh);
     margin-left: 20%;
     padding: 10px 14px;
-        white-space: pre-wrap;
+    white-space: pre-wrap;
     overflow-wrap: break-word;
 }
 
@@ -735,7 +739,7 @@ function newChat() {
     max-width: min(600px, 78vh);
     margin-right: 20%;
     padding: 10px 14px;
-        white-space: pre-wrap;
+    white-space: pre-wrap;
     overflow-wrap: break-word;
 }
 

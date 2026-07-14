@@ -104,11 +104,7 @@ const router = createRouter({
       name: 'ConfirmEmail',
       component: () => import('../views/ConfirmEmail.vue')
     },
-    {
-      path: '/test',
-      name: 'TestComponent',
-      component: () => import('../views/TestComponentPage.vue')
-    },
+
         {
       path: '/chatbot',
       name: 'ChatbotPage',
@@ -127,7 +123,7 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   const userStore = useUserStore();
   const isAuthenticated = userStore.isAuthenticated;
-  const publicPages = ['Login', 'TestComponent', 'Register', 'Home', 'About', 'Contact', 'Missing', 'NotFound', 'ConfirmEmail'];
+  const publicPages = ['Login', 'Register', 'Home', 'About', 'Contact', 'Missing', 'NotFound', 'ConfirmEmail'];
 
   if (publicPages.includes(to.name as string)) {
     return true;

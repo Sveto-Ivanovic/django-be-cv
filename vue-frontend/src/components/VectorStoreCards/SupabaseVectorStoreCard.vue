@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { SupabaseNamespace, GetSupabaseNamespacesResponse } from '../../services/vector_store/supabase_namespaces/types'
+import type { SupabaseNamespace } from '../../services/vector_store/supabase_namespaces/types'
 import { useRouter } from 'vue-router';
 
 const props = withDefaults(defineProps<SupabaseNamespace & { routeTo: string }>(), {

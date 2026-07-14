@@ -1,5 +1,6 @@
-import { ApexOptions } from "apexcharts";
-import { computed, Ref } from "vue";
+import type { ApexOptions } from "apexcharts";
+import { computed } from "vue";
+import type { Ref } from "vue";
 
 export type FormatedData = {
     xdata: string[];

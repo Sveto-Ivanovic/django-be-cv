@@ -1,9 +1,6 @@
-# Django Backend CV
+# Django Backend CV & AI RAG System
 
-This repository contains a Django backend application designed to serve as a comprehensive AI RAG system, featuring a chatbot for interactive information retrieval and a messaging system. It leverages modern AI tools for natural language processing and integrates with a PostgreSQL database.
-
-
-
+This repository contains a full-stack application featuring a **Django** backend and a **Vue.js** frontend. It is designed to serve as a comprehensive AI RAG (Retrieval-Augmented Generation) system, featuring a chatbot for interactive information retrieval and a messaging system. It leverages modern AI tools for natural language processing and integrates with a PostgreSQL database.
 
 ## Features
 
@@ -17,129 +14,188 @@ The application also implements JWT-based authentication, vector embedding pipel
 
 A messaging system is integrated into the backend, allowing for communication functionalities. This system is handled by the `contact` Django app.
 
-
-
-
 ## Technologies Used
 
 This project is built using the following key technologies:
 
-## Dependencies
-## Core Framework & Database
+### Backend
 
 - **Django 5.2.3**: A high-level Python web framework that encourages rapid development and clean, pragmatic design.
+
 - **PostgreSQL**: A powerful, open-source object-relational database system used for data storage.
-- **psycopg2-binary 2.9.10**: A PostgreSQL adapter for Python.
-- **python-dotenv 1.1.0**: Loads environment variables from a `.env` file.
-
-## LangChain Ecosystem
-
-- **langgraph 0.5.2**: Framework for building robust, stateful, multi-agent applications powered by LLMs.
-- **langsmith 0.4.5**: Platform for debugging, testing, evaluating, and monitoring LLM applications.
-- **langchain-groq 0.3.6**: Integration with Groq for high-performance LLM inference.
-- **langchain-google-genai 2.1.7**: Integration with Google's Generative AI models.
-- **langchain_mistralai 0.2.11**: Integration with Mistral AI models.
-
-## Vector Search & AI
 
 - **pgvector 0.4.1**: PostgreSQL extension for vector similarity search, enabling storage and querying of vector embeddings.
-- **cohere 5.16.1**: SDK for Cohere's NLP models, supporting embeddings, reranking, and text generation.
-- **pinecone 9.1.0**: Managed vector database client for scalable similarity search and vector storage.
 
-## Document & Image Processing
+- **LangChain Ecosystem**: Includes `langgraph`, `langsmith`, and integrations for Groq, Google Gemini, and Mistral AI.
 
-- **Pillow 11.3.0**: Python imaging library for opening, manipulating, and saving image files.
-- **pdfplumber 0.11.7**: Extracts text, tables, and metadata from PDF files with fine-grained control.
-- **pymupdf 1.26.3**: High-performance PDF and document processing library (also known as `fitz`).
+- **Vector Search**: Managed services via **Pinecone** and **Supabase**.
 
-## Authentication & Security
+### Frontend
 
-- **argon2-cffi 25.1.0**: Secure password hashing library implementing the Argon2 algorithm.
-- **pyjwt 2.10.1**: Library for encoding and decoding JSON Web Tokens (JWT).
-- **django-ratelimit 4.1.0**: Django middleware/decorator for rate limiting and abuse prevention.
-- **cryptography 45.0.5**: Provides cryptographic recipes and primitives for secure application development.
+- **Vue.js 3**: Modern JavaScript framework using the Composition API for a reactive UI.
 
-## Backend & Database Services
+- **TypeScript**: Provides static typing for improved developer experience and code reliability.
 
-- **supabase 2.24.0**: Python client for Supabase, providing access to database, authentication, storage, and realtime features.
+- **Vite**: Next-generation frontend build tool for fast development and optimized production builds.
 
-## Utilities
+- **Pinia**: Intuitive and flexible state management library for Vue.
 
-- **ipython 9.4.0**: Interactive Python computing environment.
-- **colorama 0.4.6**: Cross-platform colored terminal text support.
+- **Vue Router**: Official router for Vue.js to handle single-page application navigation.
 
+---
 
+## Dependencies
+
+### Core Framework & Database
+
+- **Django 5.2.3**
+
+- **PostgreSQL**
+
+- **psycopg2-binary 2.9.10**
+
+- **python-dotenv 1.1.0**
+
+### LangChain Ecosystem
+
+- **langgraph 0.5.2**
+
+- **langsmith 0.4.5**
+
+- **langchain-groq 0.3.6**
+
+- **langchain-google-genai 2.1.7**
+
+- **langchain_mistralai 0.2.11**
+
+### Vector Search & AI
+
+- **pgvector 0.4.1**
+
+- **cohere 5.16.1**
+
+- **pinecone 9.1.0**
+
+### Document & Image Processing
+
+- **Pillow 11.3.0**
+
+- **pdfplumber 0.11.7**
+
+- **pymupdf 1.26.3**
+
+### Authentication & Security
+
+- **argon2-cffi 25.1.0**
+
+- **pyjwt 2.10.1**
+
+- **django-ratelimit 4.1.0**
+
+- **cryptography 45.0.5**
+
+### Backend & Database Services
+
+- **supabase 2.24.0**
+
+### Utilities
+
+- **ipython 9.4.0**
+
+- **colorama 0.4.6**
+
+---
 
 ## Setup and Installation
 
 To get this project up and running on your local machine, follow these steps:
 
-1.  **Clone the repository:**
+### Backend Setup
 
-    ```bash
-    git clone https://github.com/Sveto-Ivanovic/django-be-cv.git
-    cd django-be-cv
-    ```
+1. **Clone the repository:**
 
-2.  **Create a virtual environment and activate it:**
+   ```bash
+   git clone https://github.com/Sveto-Ivanovic/django-be-cv.git
+   cd django-be-cv/django-be
+   ```
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+1. **Create a virtual environment and activate it:**
 
-3.  **Install dependencies:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+1. **Install dependencies:**
 
-4.  **Set up environment variables:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-    Create a `.env` file in the root directory of the `django-be-cv` project (the same directory as `requirements.txt`) and add your database credentials and any other necessary environment variables. Refer to `.env.example` for required variables.
+1. **Set up environment variables:**Create a `.env` file in the `django-be/` directory. Refer to `.env.example` for required variables.
 
-    ```
-    # Database configuration
-    DB_HOST=
-    DB_NAME=
-    DB_USER=
-    DB_PASSWORD=
-    DB_PORT=
-    
-    # Supabase configuration
-    SUPABASE_URL=
-    SUPABASE_KEY=
-    SUPABASE_REDIRECT_URL=
-    
-    # Secret keys
-    SECRET_AES_KEY=
-    SECRET_DJANGO_KEY=
+1. **Run database migrations:**
 
-    ```
+   ```bash
+   python manage.py migrate
+   ```
 
-5.  **Run database migrations:**
+1. **Start the Django development server:**
 
-    Navigate into the `cv-django-project` directory and apply the database migrations:
+   ```bash
+   python manage.py runserver
+   ```
 
-    ```bash
-    cd django-be-cv
-    python manage.py migrate
-    ```
+### Frontend Setup
 
-6.  **Start the Django development server:**
+1. **Navigate to the frontend directory:**
 
-    ```bash
-    python manage.py runserver
-    ```
+   ```bash
+   cd ../vue-frontend
+   ```
 
-    The application will be accessible at `http://127.0.0.1:8000/`.
+1. **Install dependencies:**
 
+   ```bash
+   pnpm install
+   ```
 
+1. **Start the development server:**
 
+   ```bash
+   pnpm dev
+   ```
+
+---
 
 ## Project Structure
 
+### Root Directory
+
 ```
+django-be-cv/
+├── django-be/        # Django backend application
+├── vue-frontend/     # Vue.js frontend application
+├── .gitignore
+└── README.md
+```
+
+vue-frontend/
+├── src/
+│   ├── components/       # Reusable UI components (e.g., ChatWindow.vue, LoadingSpinner.vue)
+│   ├── views/            # Page-level components (e.g., Home.vue, Dashboard.vue, Chatbot.vue)
+│   ├── services/         # API communication logic (e.g., auth.service.ts, chat.service.ts)
+│   ├── stores/           # Pinia state management (e.g., user.ts, chatbot.ts)
+│   ├── router/           # Vue Router configuration and navigation guards
+│   ├── assets/           # Static assets like images, styles, and global icons
+│   ├── App.vue           # Root component
+│   └── main.ts           # Application entry point
+├── public/               # Static public files
+├── vite.config.ts        # Vite configuration
+└── package.json          # Project dependencies and scripts
+
+
+
 django-be-cv/
 ├── django-be/               # Main Django project directory
 │   ├── apps/                # Directory for Django applications
@@ -152,6 +208,7 @@ django-be-cv/
 │   │   ├── embed/           # Django app for embedding text, images, and pdfs into Supabase or Pinecone
 │   │   ├── usermanagement/  # Django app for managing user authentication
 │   │   ├── vector_search/   # Django app for vector search functionalities
+│   │   ├── evaluate/        # Django app for benchmark evaluation with vectorstore
 │   │   └── __init__.py      # Python package initialization file
 │   ├── config/              # Main Django project configuration
 │   │   ├── __init__.py      # Python package initialization file
@@ -164,6 +221,33 @@ django-be-cv/
 ├── .gitignore               # Specifies intentionally untracked files to ignore
 ├── README.md                # Project README file
 └── requirements.txt         # Python dependencies
-```
 
+### Frontend Structure (`vue-frontend/src/` )
 
+The frontend is built with a modular architecture:
+
+- **`components/`**: Reusable UI elements (e.g., `ChatWindow.vue`, `LoadingSpinner.vue`).
+
+- **`views/`**: Page components representing different routes (e.g., `Home.vue`, `Dashboard.vue`, `Chatbot.vue`).
+
+- **`services/`**: Modules for API calls and external integrations (e.g., `auth.service.ts`, `chat.service.ts`).
+
+- **`stores/`**: Pinia state management for global application state.
+
+- **`router/`**: Navigation configuration and route guards.
+
+- **`assets/`**: Static files, global styles, and images.
+
+### Backend Structure (`django-be/`)
+
+- **`apps/`**: Modular Django applications containing core logic.
+
+- **`config/`**: Global project settings and URL routing.
+
+- **`Dockerfile`**: Container configuration for the backend service.
+
+---
+
+## License
+
+This project is licensed under the MIT License.

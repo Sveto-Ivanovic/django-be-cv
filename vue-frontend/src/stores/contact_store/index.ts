@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from 'vue';
-import { SendContactInfo } from "../../services/contact/types";
+import type { SendContactInfo } from "../../services/contact/types";
 
 export const useContactStore = defineStore("contactStore", () => {
 

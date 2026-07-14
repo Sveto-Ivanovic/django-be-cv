@@ -48,7 +48,9 @@ let isActive = ref<string>("")
 watchEffect(() => {
     if (route.name) {
         let filtered_list = items.value.filter((item) => item.routeName == route.name)
-        isActive.value = filtered_list[0].routeName
+        if(filtered_list.length>=1 && filtered_list[0]){
+                    isActive.value = filtered_list[0].routeName
+        }
     }
 })
 

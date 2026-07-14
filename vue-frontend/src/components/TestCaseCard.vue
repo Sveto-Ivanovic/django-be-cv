@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { GetAggregateItem } from '../services/testcase/types'
+import type { GetAggregateItem } from '../services/testcase/types'
 import { useRouter } from 'vue-router';
 
 const props = withDefaults(defineProps<GetAggregateItem>(), {

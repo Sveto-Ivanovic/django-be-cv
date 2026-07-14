@@ -6,7 +6,7 @@ export type RegisterRequest = {
     username: string;
     email: string;
     password: string;
-    date_of_birth: string;
+    date_of_birth?: string;
     name: string;
     surname: string;
 }

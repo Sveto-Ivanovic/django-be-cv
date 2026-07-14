@@ -1,15 +1,15 @@
-import { get } from 'http'
 import http from '../../axios_service/api'
-import { APIResponse } from '../../axios_service/axiosTypes'
-import {
+import type { APIResponse } from '../../axios_service/axiosTypes'
+import type {
     GetSupabaseNamespacesResponse, GetSupabaseNamespaceRecordsRequest, GetSupabaseNamespacesRecordsResponses, DeleteSupabaseNamespaceRequest,
     DeleteSupabaseNamespaceResponse, DeleteSupabaseRecordsRequest, DeleteSupabaseRecordsResponse, SupabaseEmbedRequestForm, SupabaseEmbedRequestText, SupabaseEmbedResponse
 } from './types'
-import { useMutation, UseMutationReturnType, useQuery, useQueryClient  } from '@tanstack/vue-query'
+import { useMutation,  useQuery, useQueryClient  } from '@tanstack/vue-query'
+import type { UseMutationReturnType } from '@tanstack/vue-query'
+
 import { useUserStore } from '../../../stores/user_store'
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AxiosResponse } from 'axios'
 
 function buildEmbedFormData(req: SupabaseEmbedRequestForm): FormData {
     const fd = new FormData()

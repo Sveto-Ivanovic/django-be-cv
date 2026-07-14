@@ -79,7 +79,6 @@
 import { ref, watchEffect } from "vue";
 import contactApi from '../services/contact'
 import { useWindowSize } from "@vueuse/core";
-import { watch } from "fs";
 
 const name = ref("");
 const email = ref("");

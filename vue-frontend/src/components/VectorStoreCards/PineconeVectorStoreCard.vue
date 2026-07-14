@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { IndexItem} from '../../services/vector_store/pinecone_indexes/types'
+import type { IndexItem} from '../../services/vector_store/pinecone_indexes/types'
 import { useRouter } from 'vue-router';
 
 const props = withDefaults(defineProps<IndexItem & { routeTo: string }>(), {

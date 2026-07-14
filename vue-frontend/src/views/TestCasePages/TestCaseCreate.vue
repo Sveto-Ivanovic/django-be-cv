@@ -173,9 +173,8 @@ import { computed, ref } from 'vue'
 import { useUserStore } from '../../stores/user_store'
 import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
 import InfoPopOver from '../../components/InfoPopOver.vue'
-import { SupabaseEmbedRequestForm, SupabaseEmbedRequestText } from '../../services/vector_store/supabase_namespaces/types'
 import { globalAPI } from '../../services'
-import { ValidateJsonRequest, ValidateTextRequest } from '../../services/testcase/types'
+import type { ValidateJsonRequest, ValidateTextRequest } from '../../services/testcase/types'
 
 
 
@@ -530,7 +529,7 @@ function submitForm(e: MouseEvent) {
 
                 }
                 if (formValue.value.select_vector_store == "supabase") {
-                    const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == formValue.value.supabase.namespace_selected)[0].model
+                    const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == formValue.value.supabase.namespace_selected)[0]?.model
                     if (model === undefined) {
                         console.log("Undefined mode")
                         return
@@ -560,7 +559,7 @@ function submitForm(e: MouseEvent) {
                 }
 
                 if (formValue.value.select_vector_store == "pinecone") {
-                    const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == formValue.value.pinecone.index_name_selected)[0].model
+                    const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == formValue.value.pinecone.index_name_selected)[0]?.model
                     if (model === undefined) {
                         console.log("Undefined mode")
                         return
@@ -605,6 +604,10 @@ function submitForm(e: MouseEvent) {
                         .map(item => item.file)
                         .filter((file): file is File => file !== undefined);
 
+                    if (array_of_files.length === 0 || array_of_files[0] === undefined ) {
+                        console.log("No file selected");
+                        return
+                        }
 
                     const data: ValidateJsonRequest = {
                         testcase_name: formValue.value.input_testcase_name,
@@ -614,7 +617,7 @@ function submitForm(e: MouseEvent) {
 
                     }
                     if (formValue.value.select_vector_store == "supabase") {
-                        const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == formValue.value.supabase.namespace_selected)[0].model
+                        const model = userStore.userInfo?.supabase_namespaces.filter(item => item.name == formValue.value.supabase.namespace_selected)[0]?.model
                         if (model === undefined) {
                             console.log("Undefined mode")
                             return
@@ -644,7 +647,7 @@ function submitForm(e: MouseEvent) {
                     }
 
                     if (formValue.value.select_vector_store == "pinecone") {
-                        const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == formValue.value.pinecone.index_name_selected)[0].model
+                        const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == formValue.value.pinecone.index_name_selected)[0]?.model
                         if (model === undefined) {
                             console.log("Undefined mode")
                             return

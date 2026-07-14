@@ -1,7 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { useUserStore } from '../../stores/user_store'; 
-import { APIResponse } from './axiosTypes';
-import { useRouter } from 'vue-router';
+import type { APIResponse } from './axiosTypes';
 import router from '../../router';
 
 

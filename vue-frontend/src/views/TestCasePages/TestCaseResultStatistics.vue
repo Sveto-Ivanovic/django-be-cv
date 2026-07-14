@@ -2,7 +2,7 @@
 
     <div class="testcase-header" v-if="!isFetching">
         <div>
-            <h3>Testcase Records for: {{ fetchedData[0].test_case_name ?? 'Unknown' }}</h3>
+            <h3>Testcase Records for: {{ fetchedData[0]?.test_case_name ?? 'Unknown' }}</h3>
             <button @click="deleteAggregate()" class="delete-table"
                 :class="{ 'disable-button-class': fetchedData?.length == 0 || hasBeenClicked }"> Delete
                 Testcase</button>
@@ -65,11 +65,10 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
 import { globalAPI } from '../../services';
-import { computed, h, ref } from 'vue';
+import { computed, ref } from 'vue';
 import LoadingComponent from '../../components/LoadingComponent.vue';
-import { NButton, type DataTableColumns } from 'naive-ui'
-import { useWindowSize } from '@vueuse/core';
-import { TestCaseListItem } from '../../services/testcase/types';
+import {  type DataTableColumns } from 'naive-ui'
+import type { TestCaseListItem } from '../../services/testcase/types';
 import VueApexCharts from 'vue3-apexcharts'
 import { get_options_bar, get_series_bar } from './helper_functions/statistic_graphs';
 import EvalCard from '../../components/EvalCard.vue';
