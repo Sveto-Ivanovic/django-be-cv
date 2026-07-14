@@ -463,13 +463,23 @@ def call_validation_json(request):
                 semantic_search_mode = supabase_metadata.get("semantic_search_mode", "cosine")
 
                 for element in data_to_evaluate:
-                    question = element.get("question")
-                    element["context"] = fetch_supabase_context(
-                        question, namespace, table_name, user_id,
-                        top_k, mode, model, semantic_search_mode,
-                        get_all_neighbor_chunks, nearest_chunks_n,
+
+                    context, array_context = fetch_supabase_context(
+                        question,
+                        namespace,
+                        table_name,
+                        user_id,
+                        top_k,
+                        mode,
+                        model,
+                        semantic_search_mode,
+                        get_all_neighbor_chunks,
+                        nearest_chunks_n,
                         nearest_page_or_array_members_n
                     )
+
+                    element["context"] = context
+                    element["array_context"] = array_context
 
             if pinecone_metadata is not None:
                 top_k = pinecone_metadata.get("top_k", 5)
@@ -480,12 +490,21 @@ def call_validation_json(request):
 
                 for element in data_to_evaluate:
                     question = element.get("question")
-                    element["context"] = fetch_pinecone_context(
-                        question, index_name, index_name_lexical,
-                        top_k, mode, model, keys,
-                        get_all_neighbor_chunks, nearest_chunks_n,
+                    context, array_context = fetch_pinecone_context(
+                        question,
+                        index_name,
+                        index_name_lexical,
+                        top_k,
+                        mode,
+                        model,
+                        keys,
+                        get_all_neighbor_chunks,
+                        nearest_chunks_n,
                         nearest_page_or_array_members_n
                     )
+
+                    element["context"] = context
+                    element["array_context"] = array_context
 
             ###### QA based on context
             print("Getting answers")
@@ -565,9 +584,9 @@ def call_validation_json(request):
                 results.append({
                     "user_input": element.get("question"),
                     "reference": element.get("reference_answer"),
-                    "retrieved_context_text": [element.get("context")],
+                    "retrieved_context_text": element.get("context"),
                     "response": element.get("answer"),
-                    "retrieved_context_array": json.dumps(element.get("array_context"), cls=ExtendedEncoder),
+                 "retrieved_context_array": json.dumps(element.get("array_context"), cls=ExtendedEncoder),
 
                     "faithfulness": getattr(getattr(response, "faithfulness", None), "score", None),
                     "faithfulness_explanation": getattr(getattr(response, "faithfulness", None), "reasoning", None),
