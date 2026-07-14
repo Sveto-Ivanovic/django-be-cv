@@ -4,6 +4,8 @@ This module provides RAG (Retrieval-Augmented Generation) pipeline evaluation en
 
 All endpoints are prefixed with `/evaluate/` and require authentication via `auth_id`.
 
+> **Note on response envelope:** Every endpoint wraps its payload in a top-level envelope of the form `{"res_status": "success" | "error", "response": <payload>}`. For the two evaluation endpoints, `<payload>` is itself an object that also contains its own `status` / `response` fields (see below) — so the evaluation result is nested two levels deep.
+
 ---
 
 ## Endpoints
@@ -58,34 +60,40 @@ You may use `supabase_metadata` instead of (or in addition to) `pinecone_metadat
 
 **Response:**
 
+Note the outer `res_status`/`response` envelope, and that each record uses `retrieved_context_text` (a string) plus `retrieved_context_array` (a JSON-encoded string of the raw array context) rather than a single `retrieved_contexts` array.
+
 ```json
 {
-  "status": "success",
-  "response": "Successfully evaluated the dataset.",
-  "aggregate": {
-    "faithfulness": 0.87,
-    "answer_relevancy": 0.91,
-    "answer_correctness": 0.78,
-    "context_recall": 0.83
-  },
-  "records": [
-    {
-      "user_input": "What is the capital of France?",
-      "reference": "Paris",
-      "retrieved_contexts": ["France is a country in Western Europe. Its capital is Paris..."],
-      "response": "The capital of France is Paris.",
-      "faithfulness": 1.0,
-      "faithfulness_explanation": "The answer is fully supported by the retrieved context.",
-      "answer_relevancy": 0.95,
-      "answer_relevancy_explanation": "The response directly answers the question.",
-      "answer_correctness": 1.0,
-      "answer_correctness_explanation": "The answer matches the reference exactly.",
-      "context_recall": 0.9,
-      "context_recall_explanation": "The relevant context was retrieved."
-    }
-  ],
-  "total": 1,
-  "aggregate_id": "a1b2c3d4-..."
+  "res_status": "success",
+  "response": {
+    "status": "success",
+    "response": "Successfully evaluated the dataset.",
+    "aggregate": {
+      "faithfulness": 0.87,
+      "answer_relevancy": 0.91,
+      "answer_correctness": 0.78,
+      "context_recall": 0.83
+    },
+    "records": [
+      {
+        "user_input": "What is the capital of France?",
+        "reference": "Paris",
+        "retrieved_context_text": "France is a country in Western Europe. Its capital is Paris...",
+        "response": "The capital of France is Paris.",
+        "retrieved_context_array": "[{\"chunk_id\": \"...\", \"text\": \"...\"}]",
+        "faithfulness": 1.0,
+        "faithfulness_explanation": "The answer is fully supported by the retrieved context.",
+        "answer_relevancy": 0.95,
+        "answer_relevancy_explanation": "The response directly answers the question.",
+        "answer_correctness": 1.0,
+        "answer_correctness_explanation": "The answer matches the reference exactly.",
+        "context_recall": 0.9,
+        "context_recall_explanation": "The relevant context was retrieved."
+      }
+    ],
+    "total": 1,
+    "aggregate_id": "a1b2c3d4-..."
+  }
 }
 ```
 
@@ -135,7 +143,29 @@ curl -X POST https://your-domain.com/evaluate/call_eval_json/ \
   -F 'pinecone_metadata={"index_name":"science-index","model":"text-embedding-3-small","top_k":5,"mode":"semantic"}'
 ```
 
-**Response:** Same structure as `call_eval_text`.
+**Response:**
+
+Same outer envelope and per-record shape as `call_eval_text`, **except this endpoint does not return a `records` array** — only the aggregate scores:
+
+```json
+{
+  "res_status": "success",
+  "response": {
+    "status": "success",
+    "response": "Successfully evaluated the dataset.",
+    "aggregate": {
+      "faithfulness": 0.87,
+      "answer_relevancy": 0.91,
+      "answer_correctness": 0.78,
+      "context_recall": 0.83
+    },
+    "total": 2,
+    "aggregate_id": "a1b2c3d4-..."
+  }
+}
+```
+
+To retrieve the individual per-record results for this run afterward, call `GET /evaluate/get_eval_testcases/?aggregate_id=<id>`.
 
 ---
 
@@ -149,7 +179,7 @@ Retrieve all aggregate evaluation results for the authenticated user.
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": [
     {
       "id": "a1b2c3d4-...",
@@ -179,15 +209,26 @@ Retrieve the individual test case results for a specific aggregate evaluation ru
 
 **Response:**
 
+Each record includes both `retrieved_context_text` (string) and `retrieved_context_array` (JSON-encoded string), matching the fields actually persisted to the database.
+
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": [
     {
       "id": "...",
       "aggregate_id": "a1b2c3d4-...",
       "test_case_name": "my_test_v1",
+      "qa_model_used": "gpt-4o",
+      "validation_model_used": "gpt-4o",
+      "aggregate_metadata": {
+        "faithfulness": 0.87,
+        "answer_relevancy": 0.91
+      },
+      "created_at": "2025-06-15T10:30:00Z",
       "user_input": "What is the capital of France?",
+      "retrieved_context_text": "France is a country in Western Europe. Its capital is Paris...",
+      "retrieved_context_array": "[{\"chunk_id\": \"...\", \"text\": \"...\"}]",
       "response": "The capital of France is Paris.",
       "reference": "Paris",
       "faithfulness": 1.0,
@@ -225,7 +266,7 @@ Delete an aggregate evaluation run and its associated test cases.
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": "Aggregate a1b2c3d4-... deleted successfully"
 }
 ```
@@ -251,9 +292,9 @@ All endpoints return errors in this shape:
 
 ```json
 {
-  "status": "error",
+  "res_status": "error",
   "response": "Description of what went wrong."
 }
 ```
 
-Common status codes: `400` for bad input, `401` for unexpected server errors, `404` for not found.
+Common status codes: `400` for bad input, `404` for not found, `500` for unexpected server errors.

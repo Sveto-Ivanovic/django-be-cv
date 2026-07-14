@@ -317,6 +317,50 @@ Set `include_image_embedding` to `false` (or omit it) to only embed the extracte
 
 ---
 
+## Response Format
+
+Both endpoints wrap every response — success or error — in the same envelope used across this API:
+
+```json
+{
+  "res_status": "success" | "error",
+  "response": <payload>
+}
+```
+
+### Success
+
+`response` is whatever `embed_record_pinecone_async` (for the Pinecone endpoint) or `embed_record_supabase_async` (for the Supabase endpoint) returns. That helper isn't part of the provided source, so its exact shape (e.g. per-item IDs, counts) isn't documented here — treat it as an opaque object until confirmed against the helper itself. Both endpoints default to HTTP `200` on success.
+
+```json
+{
+  "res_status": "success",
+  "response": { }
+}
+```
+
+### Errors
+
+`response` is always a plain string describing the problem. Status codes are assigned per failure case rather than following one fixed rule, and the two endpoints handle a couple of situations differently:
+
+| Status | Condition | Applies to |
+|---|---|---|
+| `400` | Missing `auth_id`, or an unsupported HTTP method (e.g. `GET` instead of `POST`) | Both |
+| `404` | User not found for the given `auth_id`; no stored API keys for the user; no Pinecone API key on file; Pinecone `index_name` not found; Pinecone `lexical_index_name` not found | Pinecone endpoint has all five checks; Supabase endpoint only has the first two (user/API-key checks) |
+| `500` | Any other unhandled exception raised during validation or embedding (e.g. invalid `embed_model`/`input_mode` combination, unsupported Supabase table, dimension mismatch) | Both |
+| `500` | **Malformed JSON in the request body** — unlike most other endpoints in this API (which return `400` for a JSON decode error), these two return `500` | Both |
+
+Example error:
+
+```json
+{
+  "res_status": "error",
+  "response": "Index not found."
+}
+```
+
+---
+
 ## Quick Reference
 
 ### When to use Pinecone vs Supabase

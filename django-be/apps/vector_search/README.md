@@ -28,7 +28,7 @@ This endpoint handles search requests directed at the Supabase vector store.
 | `model` | string | Yes | The embedding model used. | e.g., `gemini-embedding-001`, `jina-embeddings-v4`, `embed-v4.0`. |
 | `mode` | string | No | The search mode. | Must be one of: `"semantic"`, `"lexical"`, or `"hybrid"`. Defaults to `"semantic"`. |
 | `top_k` | integer | No | The number of top results to return. | Defaults to `5`. |
-| `semantic_search_mode` | string | No | The distance metric for semantic search. | Defaults to `"cosine"`. |
+| `semantic_search_mode` | string | No | The distance metric for semantic search. | Defaults to `"cosine"`. Used for `semantic` and `hybrid` modes only. |
 | `nearest_neighbor_settings` | object | No | Configuration for fetching surrounding context chunks. | See details below. |
 
 **Nearest Neighbor Settings Object:**
@@ -57,6 +57,8 @@ Content-Type: application/json
 
 #### Example Response (Success)
 
+**Semantic mode and Hybrid mode** — both include a `method` field reflecting `semantic_search_mode`:
+
 ```json
 {
   "status": "success",
@@ -78,6 +80,38 @@ Content-Type: application/json
 }
 ```
 
+**Lexical mode** — does **not** include a `method` field:
+
+```json
+{
+  "status": "success",
+  "response": [
+    {
+      "id": "chunk_456",
+      "content": "The backend developer is responsible for server-side logic...",
+      "metadata": {"page": 1},
+      "score": 0.75
+    }
+  ]
+}
+```
+
+#### Example Response (Error)
+
+```json
+{
+  "status": "error",
+  "response": "Invalid mode. Supported modes are 'semantic', 'lexical', and 'hybrid'."
+}
+```
+
+```json
+{
+  "status": "error",
+  "response": "Invalid table name or model provided."
+}
+```
+
 ### 2. Pinecone Vector Search
 
 This endpoint handles search requests directed at the Pinecone vector store.
@@ -93,7 +127,7 @@ This endpoint handles search requests directed at the Pinecone vector store.
 | `query` | string | Yes | The search query string. | |
 | `index_name` | string | Yes | The name of the Pinecone index for semantic search. | |
 | `model` | string | Yes | The embedding model used. | |
-| `mode` | string | No | The search mode. | Must be one of: `"semantic"`, `"lexical"`, or `"hybrid"`. Defaults to `"semantic"`. |
+| `mode` | string | No | The search mode. | Must be one of: `"semantic"`, `"lexical"`, or `"hybrid"`. Defaults to `"semantic"`. **Note:** unlike the Supabase endpoint, this value is not validated against the allowed list before use. |
 | `index_name_lexical` | string | Conditional | The name of the Pinecone index for lexical search. | **Required** if `mode` is `"lexical"` or `"hybrid"`. |
 | `top_k` | integer | No | The number of top results to return. | Defaults to `5`. |
 | `nearest_neighbor_settings` | object | No | Configuration for fetching surrounding context chunks. | Same structure as Supabase endpoint. |
@@ -115,9 +149,39 @@ Content-Type: application/json
 ```
 
 #### Example Response (Success)
-  Similar to supabase one.
+
+All modes (`semantic`, `lexical`, `hybrid`) return the same response shape. **No `method` field is ever included**, unlike the Supabase endpoint:
+
+```json
+{
+  "status": "success",
+  "response": [
+    {
+      "id": "chunk_456",
+      "content": "Machine learning experience with 5 years in NLP...",
+      "metadata": {"page": 1},
+      "score": 0.91
+    },
+    {
+      "id": "chunk_457",
+      "content": "Led development of a recommendation engine using ML...",
+      "metadata": {"page": 2},
+      "score": 0.87
+    }
+  ]
+}
+```
 
 #### Example Response (Error)
+
+`index_name_lexical` is required for **both** `lexical` and `hybrid` modes:
+
+```json
+{
+  "status": "error",
+  "response": "index_name_lexical is required for lexical search."
+}
+```
 
 ```json
 {

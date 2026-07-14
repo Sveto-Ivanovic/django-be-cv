@@ -4,6 +4,8 @@ Django-based REST API for managing vector embeddings across two backends: **Pine
 
 All endpoints are prefixed with `/embed/`.
 
+> **Note on response envelope:** Every endpoint wraps its payload in a top-level envelope of the form `{"res_status": "success" | "error", "response": <payload>}` — not `status`. A few endpoints (noted below) previously appeared to double-wrap this envelope; in the actual code they only wrap once, with the inner payload's fields spread directly under `response`.
+
 ---
 
 ## Authentication
@@ -36,23 +38,29 @@ Creates a new Pinecone vector index for the authenticated user.
 
 **Success Response**
 
+The payload is an object containing the created index name — not a message string:
+
 ```json
 {
-  "status": "success",
-  "response": "Successfully created index: my-index"
+  "res_status": "success",
+  "response": {
+    "index_name": "my-index"
+  }
 }
 ```
 
-**Failure Response** (index name already exists or invalid type)
+**Failure Response**
+
+`res_status` is `"error"` (not `"failure"`). Note that this same message is returned both when the index name already exists **and** when `type_of_index` is neither `"dense"` nor `"sparse"` — the API does not currently distinguish the two cases in its response text:
 
 ```json
 {
-  "status": "failure",
+  "res_status": "error",
   "response": "Index name already exists, please select another one."
 }
 ```
 
-`Note: Supported sizes of pinecone index are 1536, 2048, 3072. Corresponding to gemini, jina v4 and mistral embedding models.`
+`Note: Supported vector_size values are 1536, 2048, and 3072, which map internally to the embedding models embed-v4.0, jina-embeddings-v4, and gemini-embedding-001 respectively. Any other value raises "Supported dimensions are 3072, 1536 and 2048."`
 
 ---
 
@@ -66,7 +74,7 @@ Returns a list of all Pinecone indexes belonging to the authenticated user.
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": [
     {
       "index_name": "my-index",
@@ -95,10 +103,12 @@ Deletes a Pinecone index and removes its associated metadata from the database.
 
 **Success Response**
 
+The success message is a plain string built as `f"Sucessfully deleted index:{index_name}"` — note the typo (`Sucessfully`) and the missing space after the colon, both present in the actual code:
+
 ```json
 {
-  "status": "success",
-  "response": "Successfully deleted index: my-index"
+  "res_status": "success",
+  "response": "Sucessfully deleted index:my-index"
 }
 ```
 
@@ -106,7 +116,7 @@ Deletes a Pinecone index and removes its associated metadata from the database.
 
 ### `GET /embed/fetch_pinecone_index_data/`
 
-Fetches all records from a given Pinecone index. Uses async batched fetching with a concurrency limit of 5 simultaneous requests.
+Fetches all records from a given Pinecone index. Uses async batched fetching with a concurrency limit of 2 simultaneous requests. If the index doesn't exist for this user, it returns an empty list rather than an error.
 
 **Query Parameters**
 
@@ -124,7 +134,7 @@ GET /embed/fetch_pinecone_index_data/?index_name=my-index
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": [
     {
       "id": "vec_001",
@@ -158,11 +168,11 @@ GET /embed/fetch_pinecone_index_record/?index_name=my-index&record_id=vec_001
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": {
-    "id": "vec_001",
     "metadata": { "source": "doc.pdf", "page": 1 },
-    "vector": [0.12, 0.45, 0.89, "..."]
+    "vector": [0.12, 0.45, 0.89, "..."],
+    "id": "vec_001"
   }
 }
 ```
@@ -182,13 +192,15 @@ Deletes one or more records from a Pinecone index by ID and updates the row coun
 }
 ```
 
-`record_id` can be a single string or a list of strings.
+`record_id` can be a single string or a list of strings; a single string is normalized into a one-item list internally.
 
 **Success Response**
 
+The message embeds the Python list representation of the deleted IDs:
+
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": "Successfully deleted record with id: ['vec_001', 'vec_002']"
 }
 ```
@@ -211,16 +223,18 @@ Creates a Pinecone text search (sparse/integrated) index.
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": { }
 }
 ```
+
+*(The exact shape of `response` here depends on `create_pinecone_textsearch_index`, which isn't part of the provided source — treat this as a placeholder.)*
 
 ---
 
 ### `POST /embed/delete_textsearch_index/`
 
-Deletes a Pinecone text search index.
+Deletes a Pinecone text search index. (In the provided source, this view is named `delete_pinecone_text_search`.)
 
 **Request Body (JSON)**
 
@@ -234,10 +248,12 @@ Deletes a Pinecone text search index.
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": { }
 }
 ```
+
+*(Same caveat as above — depends on `delete_textsearch_index`, not included in the provided source.)*
 
 ---
 
@@ -247,9 +263,9 @@ Vectors are stored in one of three Django models depending on their dimensionali
 
 | Model | Table | Dimensions |
 |---|---|---|
-| `embed1536` | `vector_search_1536` | 1536 |
-| `embed2048` | `vector_search_2048` | 2048 |
-| `embed3072` | `vector_search_3072` | 3072 |
+| `VectorSearch1536` | `vector_search_1536` | 1536 |
+| `VectorSearch2048` | `vector_search_2048` | 2048 |
+| `VectorSearch3072` | `vector_search_3072` | 3072 |
 
 ---
 
@@ -263,7 +279,7 @@ Returns metadata about all Supabase vector namespaces owned by the authenticated
 
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": [
     {
       "namespace": "my-namespace",
@@ -299,12 +315,13 @@ GET /embed/list_supabase_table_records/?table_name=vector_search_1536&namespace=
 
 **Success Response**
 
+The envelope wraps only **once** (not twice as previously documented), and the record list lives under the key `records`, not `response`:
+
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": {
-    "status": "success",
-    "response": [
+    "records": [
       {
         "id": "a1b2c3",
         "namespace": "my-namespace",
@@ -343,12 +360,14 @@ Deletes specific records from a Supabase vector table by their IDs and updates t
 
 **Success Response**
 
+Single-level envelope; the payload uses `message` (not `response`) for the human-readable text, plus a numeric `delete_count`:
+
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": {
-    "status": "success",
-    "response": "Successfully deleted 2 records from vector_search_1536 for user 99",
+    "message": "Successfully deleted 2 records from vector_search_1536 for user 99",
+    "delete_count": 2,
     "details": { "apps.vector_search.embed1536": 2 }
   }
 }
@@ -356,7 +375,7 @@ Deletes specific records from a Supabase vector table by their IDs and updates t
 
 ---
 
-### `POST /embed/delete_supabase_namespace/` 
+### `POST /embed/delete_supabase_namespace/`
 
 Deletes an entire namespace and all its records from a Supabase table, and removes the namespace entry from `UserVectorMetadata`.
 
@@ -371,12 +390,16 @@ Deletes an entire namespace and all its records from a Supabase table, and remov
 
 **Success Response**
 
+Single-level envelope; payload includes `message`, `namespace`, `table_name`, and `delete_count`:
+
 ```json
 {
-  "status": "success",
+  "res_status": "success",
   "response": {
-    "status": "success",
-    "response": "Successfully deleted namespace my-namespace and all associated records from vector_search_1536 for user 99"
+    "message": "Successfully deleted namespace my-namespace and all associated records from vector_search_1536 for user 99",
+    "namespace": "my-namespace",
+    "table_name": "vector_search_1536",
+    "delete_count": 7
   }
 }
 ```
@@ -400,13 +423,16 @@ All endpoints return consistent error shapes:
 
 ```json
 {
-  "status": "error",
+  "res_status": "error",
   "response": "Description of what went wrong"
 }
 ```
 
 | HTTP Status | Meaning |
 |---|---|
-| `400` | Invalid JSON payload or missing required field |
-| `401` | Auth failure, missing API key, or unhandled exception |
+| `400` | Invalid JSON payload, missing required field, missing auth ID, or missing Pinecone API key |
 | `429` | Rate limit exceeded (4 requests/minute per IP) |
+| `500` | Unhandled exception, or (for Pinecone-backed views only) an unsupported HTTP method |
+| `405` | Unsupported HTTP method — Supabase-backed views (`get_supabase_tables`, `delete_supabase_records`, `list_supabase_table_records`, `delete_supabase_namespace`) return this; Pinecone-backed views return `500` instead for the same case |
+
+There is no `401` status used anywhere in the provided source — auth/key failures are surfaced as `400`.
