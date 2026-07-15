@@ -26,7 +26,6 @@ services:
     container_name: nginx
     image: nginx:latest
     restart: unless-stopped
-    env_file: .env
     networks:
       - internal_network
     ports:
