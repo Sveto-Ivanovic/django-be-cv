@@ -92,7 +92,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { globalAPI } from '../services'
 import { AxiosError } from 'axios'
-import { APIResponse } from '../services/axios_service/axiosTypes'
+import type { APIResponse } from '../services/axios_service/axiosTypes'
 import { useUserStore } from '../stores/user_store';
 
 

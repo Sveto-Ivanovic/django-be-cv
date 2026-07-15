@@ -1,4 +1,4 @@
-import { NullLiteral } from "typescript";
+import  type{ NullLiteral } from "typescript";
 
 export type CreatePineconeIndexRequest = {
     index_name: string;

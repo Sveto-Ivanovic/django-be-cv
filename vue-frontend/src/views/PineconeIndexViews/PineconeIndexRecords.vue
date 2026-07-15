@@ -1,33 +1,34 @@
 <template>
     <div class="root">
-    <div class="pinecone-header" v-if="!isFetching">
-        <div>
-            <h3>Pinecone Records for Index: {{ $route.params.index_name }}</h3>
-            <button @click="deleteIndex()" class="delete-table"
-                :class="{ 'disable-button-class':  hasBeenClicked || !(typeof $route.params.index_name === 'string' && userStore.userInfo?.pinecone_indexes_names.includes($route.params.index_name)) }"> Delete Index</button>
+        <div class="pinecone-header" v-if="!isFetching">
+            <div>
+                <h3>Pinecone Records for Index: {{ $route.params.index_name }}</h3>
+                <button @click="deleteIndex()" class="delete-table"
+                    :class="{ 'disable-button-class': hasBeenClicked || !(typeof $route.params.index_name === 'string' && userStore.userInfo?.pinecone_indexes_names.includes($route.params.index_name)) }">
+                    Delete Index</button>
+            </div>
+
+            <div class="seperator"></div>
         </div>
 
-        <div class="seperator"></div>
+
+        <div class="root-div">
+            <div class="controls" v-if="isSuccess && fetchedData && fetchedData.length > 0 && !isFetching">
+                <input v-model="searchQuery" type="text" placeholder="Search records..." class="search-input" />
+            </div>
+            <div class="pinecone-table" v-if="isSuccess && fetchedData && fetchedData?.length > 0 && !isFetching">
+                <n-data-table :single-line="false" :columns="columns" :data="filteredData" :pagination="pagination"
+                    :bordered="true" :scroll-x="tableScrollX" />
+            </div>
+            <div class="no-index_name" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching">
+                <n-data-table :columns="columns" :data="fetchedData" :pagination="pagination" :bordered="true" />
+            </div>
+            <div class="loader" v-else-if="isFetching">
+                <LoadingComponent></LoadingComponent>
+            </div>
+            <div class="error-event" v-else-if="isFetched && isError && !!fetchedData"> Error occured ...</div>
+        </div>
     </div>
-
-
-    <div class="root-div">
-        <div class="controls" v-if="isSuccess && fetchedData && fetchedData.length > 0 && !isFetching">
-            <input v-model="searchQuery" type="text" placeholder="Search records..." class="search-input" />
-        </div>
-        <div class="pinecone-table" v-if="isSuccess && fetchedData && fetchedData?.length > 0 && !isFetching">
-            <n-data-table :single-line="false" :columns="columns" :data="filteredData" :pagination="pagination"
-                :bordered="true" :scroll-x="tableScrollX" />
-        </div>
-        <div class="no-index_name" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching">
-            <n-data-table :columns="columns" :data="fetchedData" :pagination="pagination" :bordered="true" />
-        </div>
-        <div class="loader" v-else-if="isFetching">
-            <LoadingComponent></LoadingComponent>
-        </div>
-        <div class="error-event" v-else-if="isFetched && isError && !!fetchedData"> Error occured ...</div>
-    </div>
-</div>
 
 </template>
 
@@ -170,9 +171,29 @@ function createColumns(
             width: 180,
             sorter: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
             render(row) {
-                const [datePart, timePart] = row.created_at.split(' / ')
-                const [day, month, year] = datePart.split(':').map(Number)
-                const [hour, minute, second] = timePart.split(':').map(Number)
+                const parts = row.created_at.split(' / ')
+
+                if (parts.length !== 2) {
+                    return 'unknown'
+                }
+
+                const [datePart, timePart] = parts as [string, string]
+
+                const dateParts = datePart.split(':').map(Number)
+                const timeParts = timePart.split(':').map(Number)
+
+                if (dateParts.length !== 3 || timeParts.length !== 3) {
+                    return 'unknown'
+                }
+
+                const [day, month, year] = dateParts as [number, number, number]
+                const [hour, minute, second] = timeParts as [number, number, number]
+
+                if (
+                    [day, month, year, hour, minute, second].some(Number.isNaN)
+                ) {
+                    return 'unknown'
+                }
 
                 const date = new Date(year, month - 1, day, hour, minute, second)
 
@@ -213,10 +234,10 @@ const columns = createColumns(
         async deleteRow(row: PineconeIndexRecordUpdated) {
             excludeIds.value.push(row.id as string)
             const response = await deleteRecord({
-                  index_name: route.params.index_name as string,
-                  record_id: row.id as string
-              
-              })
+                index_name: route.params.index_name as string,
+                record_id: row.id as string
+
+            })
         }
     }
 )
@@ -233,8 +254,8 @@ const userStore = useUserStore()
 async function deleteIndex() {
     hasBeenClicked.value = true
     const response = await deleteIndexAPI({
-         index_name: route.params.index_name as string,
-     })
+        index_name: route.params.index_name as string,
+    })
 
     router.push({
         name: 'PineconeIndexes'
@@ -294,9 +315,11 @@ async function deleteIndex() {
 .root-div {
     min-height: 100%;
 }
+
 .root {
     min-height: 100%;
 }
+
 .pinecone-header {
     padding-bottom: 100px;
     display: flex;

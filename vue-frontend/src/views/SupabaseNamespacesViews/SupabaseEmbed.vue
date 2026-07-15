@@ -106,7 +106,7 @@ import { computed, ref } from 'vue'
 import { useUserStore } from '../../stores/user_store'
 import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
 import InfoPopOver from '../../components/InfoPopOver.vue'
-import { SupabaseEmbedRequestForm, SupabaseEmbedRequestText } from '../../services/vector_store/supabase_namespaces/types'
+import type { SupabaseEmbedRequestForm, SupabaseEmbedRequestText } from '../../services/vector_store/supabase_namespaces/types'
 import { globalAPI } from '../../services'
 
 
@@ -341,7 +341,16 @@ function submitForm(e: MouseEvent) {
             isLoading.value = true
             console.log(formValue.value)
 
-            if (fileData.value) { console.log(fileData.value[0].file) }
+            if (!!fileData.value && fileData.value.length === 0) {
+                console.log('No file selected')
+                alert('No file selected')
+
+                return
+
+            }
+
+
+            if (fileData.value) { console.log(fileData.value[0]?.file) }
 
             if (formValue.value.input_mode == 'text') {
                 const data_text: SupabaseEmbedRequestText = {

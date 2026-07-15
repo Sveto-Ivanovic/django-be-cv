@@ -112,7 +112,7 @@ import { useUserStore } from '../../stores/user_store'
 import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
 import InfoPopOver from '../../components/InfoPopOver.vue'
 import { globalAPI } from '../../services'
-import { PineconeEmbedRequestForm, PineconeEmbedRequestText } from '../../services/vector_store/pinecone_indexes/types'
+import type { PineconeEmbedRequestForm, PineconeEmbedRequestText } from '../../services/vector_store/pinecone_indexes/types'
 
 
 

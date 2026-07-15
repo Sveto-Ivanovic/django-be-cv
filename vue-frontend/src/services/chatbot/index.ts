@@ -1,11 +1,13 @@
 import http from '../axios_service/api'
-import { APIResponse } from '../axios_service/axiosTypes'
-import { ChatbotRequest, ChatbotResponse, GetConvHistoryResponse, GetMessagesResponse, GetMessagesRequest } from './types'
-import { useMutation, UseMutationReturnType, useQuery, useQueryClient } from '@tanstack/vue-query'
+import type { APIResponse } from '../axios_service/axiosTypes'
+import type { ChatbotRequest, ChatbotResponse, GetConvHistoryResponse, GetMessagesResponse, GetMessagesRequest } from './types'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useUserStore } from '../../stores/user_store'
-import { computed, MaybeRefOrGetter, toValue, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { AxiosResponse } from 'axios'
+import { computed, toValue } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
+
+import { useRoute } from 'vue-router'
+import type { AxiosResponse } from 'axios'
 
 
 const api = {

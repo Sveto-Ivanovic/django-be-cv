@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from 'vue';
-import { LogInResponse } from "../../services/usermanagement/types";
-import { UserInfo } from '../../services/usermanagement/types'
+import type { LogInResponse } from "../../services/usermanagement/types";
+import type { UserInfo } from '../../services/usermanagement/types'
 
 export const useUserStore = defineStore("userStore", () => {
   const user = ref<LogInResponse>();
@@ -50,10 +50,10 @@ export const useUserStore = defineStore("userStore", () => {
     else {
       hasLLmKey.value = false
     }
-    if(!!userInfo.value?.api_keys?.has_pinecone_api_key){
-      hasPineconeKey.value=true
-    }else{
-      hasPineconeKey.value=false
+    if (!!userInfo.value?.api_keys?.has_pinecone_api_key) {
+      hasPineconeKey.value = true
+    } else {
+      hasPineconeKey.value = false
     }
 
   }
@@ -63,7 +63,7 @@ export const useUserStore = defineStore("userStore", () => {
     hasUserInfo.value = false
     hasLLmKey.value = false
     hasLLmKey.value = false
-    hasPineconeKey.value=false
+    hasPineconeKey.value = false
   }
 
   function logOutUser() {
@@ -89,7 +89,7 @@ export const useUserStore = defineStore("userStore", () => {
     removeEmail,
     setUserInfo,
     removeUserInfo,
-    logOutUser
+    logOutUser,
   };
 }, {
   persist: true,

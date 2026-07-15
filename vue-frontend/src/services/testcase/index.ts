@@ -1,12 +1,10 @@
-import { get } from 'http'
 import http from '../axios_service/api'
-import { APIResponse } from '../axios_service/axiosTypes'
-import { TestCaseRequest, TestCaseResponse, GetAggregateResponse, DeleteTestCaseRequest, ValidateJsonRequest, ValidateTextRequest, ValidateTextResponse } from './types'
-import { useMutation, UseMutationReturnType, useQuery, useQueryClient } from '@tanstack/vue-query'
+import type { APIResponse } from '../axios_service/axiosTypes'
+import type { TestCaseRequest, TestCaseResponse, GetAggregateResponse, DeleteTestCaseRequest, ValidateJsonRequest, ValidateTextRequest, ValidateTextResponse } from './types'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useUserStore } from '../../stores/user_store'
-import { computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { AxiosResponse } from 'axios'
+import { computed,  } from 'vue'
+import { useRoute,  } from 'vue-router'
 
 function buildForm(req: ValidateJsonRequest): FormData {
     const fd = new FormData()

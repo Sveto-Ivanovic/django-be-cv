@@ -269,22 +269,22 @@ const options_line = computed<ApexOptions>(() => ({
                 </div>
                 <div class="tooltip-metric">
                      <span class="dot" style="background:${color[0]}"></span>
-                    <span class="metric-label">${metricName[0].name}</span>
+                    <span class="metric-label">${metricName[0]?.name}</span>
                     <span class="metric-value">${data_y[0].data[dataPointIndex].y}</span>
                 </div>
                 <div class="tooltip-metric">
                     <span class="dot" style="background:${color[1]}"></span>
-                    <span class="metric-label">${metricName[1].name}</span>
+                    <span class="metric-label">${metricName[1]?.name}</span>
                     <span class="metric-value">${data_y[1].data[dataPointIndex].y}</span>
                 </div>
                 <div class="tooltip-metric">
                     <span class="dot" style="background:${color[2]}"></span>
-                    <span class="metric-label">${metricName[2].name}</span>
+                    <span class="metric-label">${metricName[2]?.name}</span>
                     <span class="metric-value">${data_y[2].data[dataPointIndex].y}</span>
                 </div>
                 <div class="tooltip-metric">
                     <span class="dot" style="background:${color[3]}"></span>
-                    <span class="metric-label">${metricName[3].name}</span>
+                    <span class="metric-label">${metricName[3]?.name}</span>
                     <span class="metric-value">${data_y[3].data[dataPointIndex].y}</span>
                 </div>
                 <div class="tooltip-body">

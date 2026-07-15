@@ -1,7 +1,6 @@
-import { get } from 'http'
 import http from '../axios_service/api'
-import { APIResponse } from '../axios_service/axiosTypes'
-import {
+import type { APIResponse } from '../axios_service/axiosTypes'
+import type {
     RegisterRequest, SuccessFullRegistrationResponse,
     LogInRequest, LogInResponse, UserInfo,
     RefreshTokenRequest, RefreshTokenResponse, LogOutRequest,

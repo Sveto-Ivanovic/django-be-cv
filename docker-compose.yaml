@@ -1,0 +1,63 @@
+networks:
+  internal_network:
+    driver: bridge
+
+
+services:
+
+  be-django:
+   build: ./django-be
+   container_name: django-docker
+   env_file:
+    - ./django-be/.env
+
+  fe-vue:
+   build: ./vue-frontend
+   container_name: vue-docker
+   args:
+    VITE_BE_HOST: ${VITE_BE_HOST}
+
+    
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - internal_network 
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - be-django
+      - fe-vue 
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d/:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./certbot/www/:/var/www/certbot/:ro
+      - ./certbot/conf/:/etc/letsencrypt/:ro
+      - ./nginx/99-autoreload.sh:/docker-entrypoint.d/99-autoreload.sh
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
+    networks:
+      - internal_network
+
+  certbot-renew:
+    image: certbot/certbot:latest
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do certbot renew --webroot --webroot-path /var/www/certbot/ --quiet && sleep 12h; done"]
+    networks:
+      - internal_network
+
+
+
+volumes:
+  certbot-etc:
+  certbot-www:
