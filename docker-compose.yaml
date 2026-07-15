@@ -12,10 +12,11 @@ services:
     - ./django-be/.env
 
   fe-vue:
-   build: ./vue-frontend
+   build: 
+    - ./vue-frontend
+    - args:
+      VITE_BE_HOST: ${VITE_BE_HOST}
    container_name: vue-docker
-   args:
-    VITE_BE_HOST: ${VITE_BE_HOST}
 
     
   nginx:
