@@ -75,20 +75,20 @@
         <span>Go to Supabase Namespaces →</span>
       </div>
 
-      <div class="action-card" @click="handleRoute('')">
+      <div class="action-card" @click="handleRoute('PineconeEmbed')">
         <span>Go to Embed your Data to Pinecone →</span>
       </div>
 
-      <div class="action-card" @click="handleRoute('')">
+      <div class="action-card" @click="handleRoute('SupabaseEmbed')">
         <span>Go to Embed your Data to Supabase →</span>
       </div>
 
-      <div class="action-card" @click="handleRoute('')">
-        <span>Go to Evaluate with Pinecone →</span>
+      <div class="action-card" @click="handleRoute('TestCaseCreate')">
+        <span>Go Evaluate your VectorStore →</span>
       </div>
 
-      <div class="action-card" @click="handleRoute('')">
-        <span>Go to Evaluate with Supabase →</span>
+      <div class="action-card" @click="handleRoute('ChatbotPage')">
+        <span>Go Chat with your VectorStore →</span>
       </div>
 
     </div>
