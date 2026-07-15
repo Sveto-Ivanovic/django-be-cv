@@ -6,32 +6,35 @@ networks:
 services:
 
   be-django:
-   build: ./django-be
-   container_name: django-docker
-   env_file:
-    - ./django-be/.env
+    build: ./django-be
+    container_name: django-docker
+    env_file:
+      - ./django-be/.env
+    networks:
+      - internal_network
 
   fe-vue:
-   build: 
-    - ./vue-frontend
-    - args:
-      VITE_BE_HOST: ${VITE_BE_HOST}
-   container_name: vue-docker
+    build:
+      context: ./vue-frontend
+      args:
+        VITE_BE_HOST: ${VITE_BE_HOST}
+    container_name: vue-docker
+    networks:
+      - internal_network
 
-    
   nginx:
     container_name: nginx
     image: nginx:latest
     restart: unless-stopped
     env_file: .env
     networks:
-      - internal_network 
+      - internal_network
     ports:
       - 80:80
       - 443:443
     depends_on:
       - be-django
-      - fe-vue 
+      - fe-vue
     volumes:
       - ./nginx/conf/:/etc/nginx/conf.d/:ro
       - /etc/localtime:/etc/localtime:ro
