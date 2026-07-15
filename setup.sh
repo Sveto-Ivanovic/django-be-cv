@@ -65,14 +65,14 @@ export VITE_BE_HOST=https://api.testora.svivanovic.org
 sudo -E docker  compose build be-django fe-vue nginx
 sudo -E docker compose up -d be-django fe-vue nginx
 # getting certificates purely without modifying webserver (certonly), and we remoe the certbot container as it is only used for intial certificate fetching
-sudo docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d api.testora.svivanovic.org 
-sudo docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d www.testora.svivanovic.org
+sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d api.testora.svivanovic.org 
+sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d www.testora.svivanovic.org
 # now real one
-sudo docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ -d api.testora.svivanovic.org 
-sudo docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ -d www.testora.svivanovic.org
+sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ -d api.testora.svivanovic.org 
+sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ -d www.testora.svivanovic.org
 # remove comment
 sed -i 's/^#//' ./nginx/conf/app.conf
-docker compose down nginx && docker compose up -d nginx
+sudo -E  docker compose down nginx && docker compose up -d nginx
 # for auto renewal
-docker compose up -d certbot-renew
+sudo -E  docker compose up -d certbot-renew
 
