@@ -1,6 +1,6 @@
 import os
 from typing import Tuple
-from supabase import create_client, Client
+from supabase import ClientOptions, create_client, Client
 import jwt
 from dotenv import load_dotenv
 
@@ -11,7 +11,10 @@ class SupabaseManager:
         url: str = os.environ.get("SUPABASE_URL")
         key: str = os.environ.get("SUPABASE_KEY")
 
-        self.supabase: Client = create_client(url, key)
+        self.supabase: Client = create_client(url, key, options=ClientOptions(
+            auto_refresh_token=False,
+            persist_session=False
+        ))
 
     def sign_in_user(self, email: str, password: str) -> Tuple[str, dict]:
         """Signs in a user with email and password.
