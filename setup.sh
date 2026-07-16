@@ -56,7 +56,13 @@ else
     echo "django-be/.env already exists, skipping manual edit."
 fi
 
-
+echo "Checking redis env file..."
+if [ ! -f ./redis/.env ]; then
+    echo "No .env found for redis, please create one now..."
+    nano ./redis/.env
+else
+    echo "./redis/.env already exists, skipping manual edit."
+fi
 
 echo "Setting up the docker compose ..."
 # we start up the 3 containers, nginx has commented out https related blocks, because at this point we dont have certificates, unfortunately we need the nginx
@@ -64,7 +70,6 @@ echo "Setting up the docker compose ..."
 export VITE_BE_HOST=https://api.testora.svivanovic.org
 sudo -E docker  compose build be-django fe-vue nginx
 sudo -E docker compose up -d be-django fe-vue nginx
-sudo -E docker compose exec nginx nginx -s reload
 # getting certificates purely without modifying webserver (certonly), and we remoe the certbot container as it is only used for intial certificate fetching
 sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d api.testora.svivanovic.org 
 sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d www.testora.svivanovic.org
@@ -76,4 +81,3 @@ sed -i 's/^#//' ./nginx/conf/app.conf
 sudo -E  docker compose down nginx && docker compose up -d nginx
 # for auto renewal
 sudo -E  docker compose up -d certbot-renew
-

@@ -10,6 +10,18 @@ services:
     container_name: django-docker
     env_file:
       - ./django-be/.env
+    depends_on:
+      - redis
+    networks:
+      - internal_network
+
+  redis:
+    build: ./redis
+    container_name: redis-docker
+    env_file:
+      - ./redis/.env
+    volumes:
+      - redis-data:/data
     networks:
       - internal_network
 
