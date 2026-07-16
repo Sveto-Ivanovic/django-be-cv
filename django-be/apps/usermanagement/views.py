@@ -189,6 +189,7 @@ def refresh_token(request):
             print(f"Received refresh token: {refresh_token} and access token: {access_token}")
             auth_id, response = supabase_manager.refresh_session( refresh_token)
 
+            print(f"Refresh token response: {auth_id}")
             print(f"Refresh token response: {response}")
             new_auth_token = response.get("access_token")
             new_refresh_token = response.get("refresh_token")
