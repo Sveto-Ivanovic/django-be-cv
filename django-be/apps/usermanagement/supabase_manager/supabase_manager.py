@@ -66,21 +66,15 @@ class SupabaseManager:
             return {"status": "error", "message": str(e)}
         
 
-    def refresh_session(self, access_token: str, refresh_token: str) -> Tuple[str, dict]:
+    def refresh_session(self, refresh_token: str) -> Tuple[str, dict]:
         """Refreshes the user session using the refresh token.
         Args:
-            access_token (str): The current access token.
             refresh_token (str): The refresh token.
         Returns:
             tuple: A tuple containing the auth ID and a dictionary with new session details or error message.
         """
         try:
-            jwt_decoded = jwt.decode(access_token, options={"verify_signature": False})
-            auth_id = jwt_decoded.get("sub")
 
-            if not auth_id:
-                return {"status": "error", "message": "Invalid access token"}
-            
             response = self.supabase.auth.refresh_session(refresh_token)
 
             auth_id = response.user.id if response.user else None
@@ -88,6 +82,7 @@ class SupabaseManager:
             if response.user:
                 new_access_token = response.session.access_token
                 new_refresh_token = response.session.refresh_token
+                auth_id = response.session.user.id
 
                 return auth_id, {"status": "success", "access_token": new_access_token, "refresh_token": new_refresh_token, "auth_id": auth_id}
             else:

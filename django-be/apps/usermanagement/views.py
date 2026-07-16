@@ -187,7 +187,7 @@ def refresh_token(request):
                 return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
             
             print(f"Received refresh token: {refresh_token} and access token: {access_token}")
-            auth_id, response = supabase_manager.refresh_session(access_token, refresh_token)
+            auth_id, response = supabase_manager.refresh_session( refresh_token)
 
             print(f"Refresh token response: {response}")
             new_auth_token = response.get("access_token")
