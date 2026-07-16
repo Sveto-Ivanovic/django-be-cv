@@ -99,7 +99,7 @@ instance.interceptors.response.use(
       const userStore = useUserStore();
       const accessToken = userStore.accessToken
 
-      const response = await refreshClient.post<APIResponse<{ access_token: string; username: string } | string>>('user/refresh_token', { access_token: accessToken ?? '' })
+      const response = await refreshClient.post<APIResponse<{ access_token: string; username: string } | string>>('user/refresh_token/', { access_token: accessToken ?? '' })
 
       if (typeof response.data.response === 'string') {
         refreshSubscribers(null);
