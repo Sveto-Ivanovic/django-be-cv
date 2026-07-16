@@ -214,7 +214,6 @@ const columns = createColumns(
                 ids: [row.id as string]
             
             })
-              console.log(response)
         }
     }
 )

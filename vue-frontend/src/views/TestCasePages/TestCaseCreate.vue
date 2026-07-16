@@ -518,7 +518,6 @@ function submitForm(e: MouseEvent) {
     formRef.value?.validate(async (errors) => {
         if (!errors) {
             isLoading.value = true
-            console.log(formValue.value)
 
             if (formValue.value.input_mode == 'text') {
                 const data_text: ValidateTextRequest = {
@@ -586,7 +585,6 @@ function submitForm(e: MouseEvent) {
 
                 try {
                     const response = await validateTextAPI(data_text)
-                    console.log(response)
                     alert("Data successfully evaluated")
                 }
                 catch (e) {
@@ -674,7 +672,6 @@ function submitForm(e: MouseEvent) {
 
                     try {
                         const response = await validateFormAPI(data)
-                        console.log(response)
                         alert("Data successfully evaluated")
                     }
                     catch (e) {

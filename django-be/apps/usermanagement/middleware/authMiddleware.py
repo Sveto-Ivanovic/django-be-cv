@@ -4,6 +4,8 @@ from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 from django.http import HttpResponse, HttpRequest, JsonResponse
+from supabase.client import ClientOptions
+
 
 load_dotenv()
 
@@ -25,7 +27,10 @@ def auth_middleware(get_response):
     ]
 
     try:
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(
+            auto_refresh_token=False,
+            persist_session=False
+        ))
         print("[Middleware Init] Supabase client created successfully")
     except Exception as e:
         print(f"[Middleware Init ERROR] Failed to create Supabase client: {e}")

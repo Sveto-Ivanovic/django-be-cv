@@ -339,7 +339,6 @@ function submitForm(e: MouseEvent) {
     formRef.value?.validate(async (errors) => {
         if (!errors) {
             isLoading.value = true
-            console.log(formValue.value)
 
             if (!!fileData.value && fileData.value.length === 0) {
                 console.log('No file selected')
@@ -349,8 +348,6 @@ function submitForm(e: MouseEvent) {
 
             }
 
-
-            if (fileData.value) { console.log(fileData.value[0]?.file) }
 
             if (formValue.value.input_mode == 'text') {
                 const data_text: SupabaseEmbedRequestText = {
@@ -367,7 +364,6 @@ function submitForm(e: MouseEvent) {
                 }
                 try {
                     const response = await embedText(data_text)
-                    console.log(response)
                     alert("Data successfully emebeded")
                 }
                 catch (e) {
@@ -397,7 +393,6 @@ function submitForm(e: MouseEvent) {
                     }
                     try {
                         const response = await embedForm(data)
-                        console.log(response)
                         alert("Data successfully emebeded")
                     }
                     catch (e) {

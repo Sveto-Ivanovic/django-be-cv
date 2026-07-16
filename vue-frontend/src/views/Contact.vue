@@ -182,10 +182,7 @@ async function submitForm() {
     return;
   }
 
-  console.log("Name:", name.value);
-  console.log("Email:", email.value);
-  console.log("Phone:", phone.value);
-  console.log("Message:", message.value);
+
 
   try {
     const response = await mutateAsync({
@@ -193,7 +190,6 @@ async function submitForm() {
       email: email.value,
       message: message.value,
     });
-    console.log("Response:", response);
     alert("Form submitted!");
   } catch (error) {
     console.error(error);

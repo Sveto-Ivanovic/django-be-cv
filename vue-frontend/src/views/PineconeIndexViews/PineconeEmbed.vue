@@ -351,7 +351,6 @@ function submitForm(e: MouseEvent) {
     formRef.value?.validate(async (errors) => {
         if (!errors) {
             isLoading.value = true
-            console.log(formValue.value)
 
             if (formValue.value.input_mode == 'text') {
                 const data_text: PineconeEmbedRequestText = {
@@ -371,7 +370,6 @@ function submitForm(e: MouseEvent) {
                 }
                 try {
                     const response = await embedText(data_text)
-                    console.log(response)
                     alert("Data successfully emebeded")
                 }
                 catch (e) {
@@ -404,7 +402,6 @@ function submitForm(e: MouseEvent) {
                     }
                     try {
                         const response = await embedForm(data)
-                        console.log(response)
                         alert("Data successfully emebeded")
                     }
                     catch (e) {

@@ -222,7 +222,6 @@ async function handleKeyDeletion(key_type: string) {
     deletingKeys.value[key_type] = true
     try {
         const response = await deleteApiKey({ key_type: key_type })
-        console.log(response)
     } finally {
         deletingKeys.value[key_type] = false
     }
