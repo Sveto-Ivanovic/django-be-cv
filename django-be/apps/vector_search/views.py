@@ -1,7 +1,6 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django_ratelimit.decorators import ratelimit
 from apps.core.utilis.orm_functions.user_related_orm import (
     get_user,
     get_user_api_keys,
@@ -24,10 +23,10 @@ from apps.core.utilis.pinecone_vector_search.pinecone_textsearch_priview import 
 from apps.core.utilis.helper_functions.nearest_chunk_fetcher import (
     fetch_nearest_chunks_supabase, fetch_nearest_chunks_pinecone
 )
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 
 
 @csrf_exempt
-@ratelimit(key="ip", rate="50/d", block=True)
 def supabase_vector_search(request):
     if request.method == "POST":
 
@@ -46,6 +45,16 @@ def supabase_vector_search(request):
         try:
             user, user_info = get_user(auth_id)
             user_id = user_info["user_id"]
+
+            if not user_id:
+                return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_vectorsearch', max_tokens=30, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The vectorsearch endpoints have been called too many times. Please try again latter."
+                    }, status=429)
         except Exception as e:
             return JsonResponse(
                 {
@@ -277,7 +286,6 @@ def supabase_vector_search(request):
 
 
 @csrf_exempt
-@ratelimit(key="ip", rate="50/d", block=True)
 def pinecone_vector_search(request):
     if request.method == "POST":
 
@@ -296,6 +304,17 @@ def pinecone_vector_search(request):
         try:
             user, user_info = get_user(auth_id)
             user_id = user_info["user_id"]
+
+            if not user_id:
+                return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_vectorsearch', max_tokens=30, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The vectorsearch endpoints have been called too many times. Please try again latter."
+                    }, status=429)
+    
         except Exception as e:
             return JsonResponse(
                 {

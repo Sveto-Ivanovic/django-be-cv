@@ -15,10 +15,10 @@ from ..services.pinecone.fetchRecordsAsyncPinecone import fetch_batch, get_recor
 from asgiref.sync import sync_to_async
 from apps.usermanagement.encryption_functions.aes import decode_aes_256
 from apps.usermanagement.models import  UserLogs
-from django_ratelimit.decorators import ratelimit
 from ..models import UserVectorMetadata
 from apps.core.utilis.orm_functions.user_related_orm import get_user, get_user_async, fetch_pinecone_api_key_and_decode_aes, fetch_pinecone_api_key_and_decode_aes_async, log_user_action, log_user_action_async     
 from apps.core.utilis.pinecone_vector_search.pinecone_textsearch_priview import delete_textsearch_index, create_pinecone_textsearch_index
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 
 
 load_dotenv(override=True)
@@ -33,7 +33,6 @@ def error_response(response, status=400):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def create_pinecone_index(request):
     if request.method == "POST":
         try:
@@ -50,6 +49,13 @@ def create_pinecone_index(request):
 
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_createpineconeindex', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
@@ -119,7 +125,6 @@ def create_pinecone_index(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def create_textsearch_index(request):
     if request.method == "POST":
         try:
@@ -137,6 +142,12 @@ def create_textsearch_index(request):
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
 
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_createtextsearchindex', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
             if pinecone_api_key is None:
@@ -170,7 +181,6 @@ def create_textsearch_index(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_pinecone_text_search(request):
     if request.method == "POST":
         try:
@@ -188,6 +198,12 @@ def delete_pinecone_text_search(request):
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
 
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_deletepineconetextsearch', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
             if pinecone_api_key is None:
@@ -215,7 +231,6 @@ def delete_pinecone_text_search(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='GET', block=True)
 def get_pinecone_indexes(request):
     if request.method == "GET":
         try:
@@ -225,6 +240,13 @@ def get_pinecone_indexes(request):
 
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_getpineconeindexes', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
@@ -261,7 +283,6 @@ def get_pinecone_indexes(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_pinecone_index(request):
     if request.method == "POST":
         try:
@@ -278,6 +299,13 @@ def delete_pinecone_index(request):
 
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_deletepineconeindex', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
@@ -318,6 +346,13 @@ async def fetch_pinecone_index_data(request):
 
             usr_obj, usr_response = await get_user_async(auth_id)
             user_id = usr_response["user_id"]
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_fetchpineconeindexdata', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             pinecone_api_key = await fetch_pinecone_api_key_and_decode_aes_async(user_id)
 
@@ -375,7 +410,6 @@ async def fetch_pinecone_index_data(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='GET', block=True)
 def fetch_pinecone_index_record(request):
     if request.method == "GET":
         try:
@@ -387,6 +421,13 @@ def fetch_pinecone_index_record(request):
 
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_fetchpineconeindexrecord', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
@@ -426,7 +467,6 @@ def fetch_pinecone_index_record(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_pinecone_index_record(request):
     if request.method == "POST":
         try:
@@ -443,6 +483,13 @@ def delete_pinecone_index_record(request):
 
             usr_obj, usr_response = get_user(auth_id)
             user_id = usr_response["user_id"]
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_deletepineconeindexrecord', max_tokens=25, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 

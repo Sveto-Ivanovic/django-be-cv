@@ -15,6 +15,8 @@ from apps.core.utilis.orm_functions.user_related_orm import (
     log_user_action,
 )
 from .models import ChatHistory, MessageHistory
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
+
 
 load_dotenv(override=True)
 
@@ -48,6 +50,21 @@ async def call_info_chatbot(request):
 
             if not user_id:
                 return error_response("user_id is required", status=400) 
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_callchatbot', max_tokens=5, refill_rate=0.001111111)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The get user info endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+            
+            taskEnabled = canTask(user_id=str(user_id), task_name='user_callchatbot', max_limit=1, exp=1800, mode='start')
+
+            if not taskEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The call chatbot task concurrent limit has been hit. Please try again latter."
+                    }, status=429)
 
             user_api_keys = await get_user_api_keys_async(user_id)
             if user_api_keys:
@@ -127,13 +144,16 @@ async def call_info_chatbot(request):
 
             res = await graph.ainvoke(inital_state)
             await log_user_action_async(usr_obj, f"User Asked Question: {question}", log_type="ask_question")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_callchatbot', max_limit=1, exp=1800, mode='finish')
             return success_response({ "response": res['answer'], "conv_id": res['conv_id']})
         
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_callchatbot', max_limit=1, exp=1800, mode='finish')
             return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             logger.error(f"Error occured in call_chatbot endpoint: {str(e)}")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_callchatbot', max_limit=1, exp=1800, mode='finish')
             return error_response(str(e), status=500)
 
    
@@ -154,11 +174,16 @@ def get_history(request):
 
             if not user_id:
                 return error_response("user_id is required", status=400)
-            
-            print('c1')
+           
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_getchathistory', max_tokens=40, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The get chat history endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+                    
             data = ChatHistory.objects.filter(user_id=user_id).values('id', 'history', 'created_at').order_by('-created_at')
             data_list = list(data)
-            print('c1')
 
             data_response=[]
             for item in data_list:
@@ -167,7 +192,6 @@ def get_history(request):
                         'id': item.get('id',''),
                         'name': item.get('history')[0].get('user','')
                     })
-            print('c1')
   
 
             log_user_action(usr_obj, 'User asked for history of conversations.', 'fetch_chat_history')
@@ -202,6 +226,13 @@ def get_conv_history(request):
 
             if not user_id:
                 return error_response("user_id is required", status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_getconvhistory', max_tokens=40, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The get chat messages endpoint has been called too many times. Please try again latter."
+                    }, status=429)
             
             conv_id = request.GET.get("conv_id")
             if not conv_id:

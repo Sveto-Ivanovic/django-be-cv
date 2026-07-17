@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosRequestConfig } from 'axios'
 import { useUserStore } from '../../stores/user_store';
 import type { APIResponse } from './axiosTypes';
-import router from '../../router';
+import {getRouterInstance} from '../../router/router_instance';
 
 
 const instance = axios.create({
@@ -34,13 +34,20 @@ instance.interceptors.request.use(
 )
 
 function forceLogout() {
+  const router = getRouterInstance();
   const userStore = useUserStore();
+
   if (userStore.isAuthenticated) {
     userStore.logOutUser();
   }
+
+  if (!router) {
+    window.location.replace('/login');
+    return;
+  }
+
   if (router.currentRoute.value.name !== 'Login') {
-    router.push({ name: 'Login' }).catch(() => {
-    });
+    router.push({ name: 'Login' }).catch(() => {});
   }
 }
 

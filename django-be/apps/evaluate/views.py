@@ -1,7 +1,6 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django_ratelimit.decorators import ratelimit
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from apps.core.utilis.orm_functions.user_related_orm import (
@@ -27,24 +26,20 @@ from apps.core.utilis.helper_functions.fetch_llm import (
 )
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django_ratelimit.decorators import ratelimit
 from apps.core.utilis.orm_functions.user_related_orm import (
     get_user,
     get_user_api_keys,
     log_user_action,
 )
-from groq import Groq
-import google.genai as genai
 from .models import TestCaseDB, TestCaseDBAggregate
 from django.utils import timezone
-from django.core import serializers
-
-load_dotenv(override=True)
-
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 import json
 import uuid
 from datetime import datetime, date
 from decimal import Decimal
+
+load_dotenv(override=True)
 
 
 def success_response(response, status=200):
@@ -66,7 +61,6 @@ class ExtendedEncoder(json.JSONEncoder):
         return super().default(obj)
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def call_validation_text(request):
     if request.method=="POST":
         try:
@@ -84,6 +78,21 @@ def call_validation_text(request):
             if not user_id:
                 return error_response("user_id is required", status=400)
             
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_eval', max_tokens=5, refill_rate=0.001111111)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The eval endpoints have been called too many times. Please try again latter."
+                    }, status=429)
+            
+            taskEnabled = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='start')
+
+            if not taskEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The eval task concurrent limit hasa been hit. Please try again latter."
+                    }, status=429)
+            
             print(f"Data request: {data}")
 
             data_to_evaluate = data.get("to_evaluate", None)
@@ -94,21 +103,25 @@ def call_validation_text(request):
             eval_model = data.get("eval_model", None)
 
             if data_to_evaluate is None:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("to_evaluate field is required", status=400)
 
             metrics = validate_request_for_evaluation(data_to_evaluate)
             print(f"Required metrics {data_to_evaluate}")
 
             if supabase_metadata is None and pinecone_metadata is None:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("to call this endpoint, metadata for pinecone or supabase vector store it required.", status=400)
 
             if llm_model is None:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("llm_model for answering questions and evaluating required.", status=400)
             
 
             keys = get_user_api_keys(user_id)
 
             if not keys:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("No API keys found for the user.", status=404)
             print("Fetched keys successfully")
 
@@ -362,13 +375,15 @@ def call_validation_text(request):
                 "total": len(results),
                 "aggregate_id": str(record_id),
             }
-
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
             return success_response(response, status=200)
         
         except json.JSONDecodeError:
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
             print("Error decoding JSON")
             return error_response("Invalid JSON payload", status=400)
         except Exception as e:
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
             print(f"Error occured in call_validation_text: {str(e)}")
             return error_response(str(e), status=500)
 
@@ -376,7 +391,6 @@ def call_validation_text(request):
     return error_response("Invalid request method. Please use POST to send a request.")
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def call_validation_json(request):
     if request.method == "POST":
         try:
@@ -393,6 +407,22 @@ def call_validation_json(request):
             user_id = usr_response["user_id"]
             if not user_id:
                 return error_response("user_id is required", status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_eval', max_tokens=5, refill_rate=0.001111111)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The eval endpoints have been called too many times. Please try again latter."
+                    }, status=429)
+            
+            taskEnabled = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='start')
+
+            if not taskEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The eval task concurrent limit hasa been hit. Please try again latter."
+                    }, status=429)
+    
 
             testcase_name = data.get("testcase_name", None)
             llm_model     = data.get("llm_model", None)
@@ -418,16 +448,20 @@ def call_validation_json(request):
             # load json file
             json_file = request.FILES.get("to_evaluate", None)
             if json_file is None:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("to_evaluate file is required (upload a .json file).", status=400)
             if not json_file.name.endswith(".json"):
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("to_evaluate must be a .json file.", status=400)
 
             try:
                 data_to_evaluate = json.loads(json_file.read().decode("utf-8"))
             except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response(f"Failed to parse to_evaluate JSON file: {str(e)}", status=400)
 
             if not isinstance(data_to_evaluate, list):
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("to_evaluate JSON must be a list of evaluation objects.", status=400)
             
 
@@ -438,13 +472,16 @@ def call_validation_json(request):
             metrics = validate_request_for_evaluation(data_to_evaluate)
 
             if supabase_metadata is None and pinecone_metadata is None:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("Metadata for pinecone or supabase vector store is required.", status=400)
 
             if llm_model is None:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("llm_model for answering questions and evaluating required.", status=400)
 
             keys = get_user_api_keys(user_id)
             if not keys:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
                 return error_response("No API keys found for the user.", status=404)
             print("Fetched keys successfully")
 
@@ -654,14 +691,16 @@ def call_validation_json(request):
                 "total": len(results),
                 "aggregate_id": str(record_id),
             }
-
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
             return success_response(response, status=200)
 
         except json.JSONDecodeError:
             print("Error decoding JSON")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
             return error_response("Invalid JSON payload", status=400)
         except Exception as e:
             print(f"Error occurred in call_validation_json: {str(e)}")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_eval', max_limit=1, exp=1800, mode='finish')
             return error_response(str(e), status=500)
 
     return error_response("Invalid request method. Please use POST to send a request.")
@@ -669,7 +708,6 @@ def call_validation_json(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='10/m', method='GET', block=True)
 def get_eval_aggregates(request):
     if request.method=="GET":
         try:
@@ -683,6 +721,13 @@ def get_eval_aggregates(request):
             if not user_id:
                 return error_response("user_id is required", status=400)
             
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_getaggregates', max_tokens=40, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The get eval aggregates endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+                    
             data_response = TestCaseDBAggregate.objects.filter(user_id=user_id).values("id", "test_case_name", "qa_model_used", "validation_model_used", "aggregate_metadata", "created_at", "number_of_testcases") 
             response = list(data_response)
 
@@ -701,7 +746,6 @@ def get_eval_aggregates(request):
     return error_response("Invalid request method. Please use GET to send a request.")
 
 @csrf_exempt
-@ratelimit(key='ip', rate='10/m', method='GET', block=True)
 def get_eval_testcases(request):
     if request.method == "GET":
         try:
@@ -714,6 +758,13 @@ def get_eval_testcases(request):
 
             if not user_id:
                 return error_response("user_id is required", status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_gettestcases', max_tokens=40, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The get eval testcases endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             aggregate_id = request.GET.get("aggregate_id")
             if not aggregate_id:
@@ -748,7 +799,6 @@ def get_eval_testcases(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='10/m', method='DELETE', block=True)
 def delete_eval_aggregate(request):
     if request.method == "POST":
         try:
@@ -766,6 +816,13 @@ def delete_eval_aggregate(request):
 
             if not user_id:
                 return error_response("user_id is required", status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_deleteevalaggregate', max_tokens=40, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The delete eval aggregate endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             aggregate_id = data.get("aggregate_id")
             if not aggregate_id:

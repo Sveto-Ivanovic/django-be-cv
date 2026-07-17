@@ -4,7 +4,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Message
 from django.utils import timezone
 import logging
-from django_ratelimit.decorators import ratelimit
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -22,10 +23,23 @@ def error_response(response, status=400):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='20/m', block=True)
 def send_message(request):
     if request.method == "POST":
         try:
+            user_ip_adress = get_client_ip(request)
+            if not user_ip_adress:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "Missing ip adress."
+                    }, status=403)
+
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_ip_adress), action_name='user_contact', max_tokens=20, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The contact endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+            
             if request.content_type == 'application/json':
                 data = json.loads(request.body)
                 logger.info(f"Data from request (application/json):{data}.")

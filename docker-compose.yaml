@@ -11,7 +11,9 @@ services:
     env_file:
       - ./django-be/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+        restart: true
     networks:
       - internal_network
 
@@ -24,6 +26,11 @@ services:
       - redis-data:/data
     networks:
       - internal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   fe-vue:
     build:

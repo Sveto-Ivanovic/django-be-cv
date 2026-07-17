@@ -17,16 +17,30 @@ from apps.core.utilis.orm_functions.user_related_orm import (
     get_user_api_keys,
 )
 from apps.embed.models import UserVectorMetadata
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 
 load_dotenv()
 
 
 
 @csrf_exempt  
-@ratelimit(key='ip', rate='50/d', block=True)
 def register_user(request):
     """Registers a new user with Supabase authentication and stores user details in the database."""
     if request.method == "POST":
+
+        user_ip_adress = get_client_ip(request)
+        if not user_ip_adress:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "Missing ip adress."
+                }, status=403)
+
+        requestEnabled, remaining_requests = canRequest(user_id=str(user_ip_adress), action_name='user_register', max_tokens=6, refill_rate=0.001)
+        if not requestEnabled:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "The register endpoint has been called too many times. Please try again latter."
+                }, status=429)
 
         supabase_manager = SupabaseManager()
 
@@ -97,10 +111,22 @@ def register_user(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='100/h', block=True)
 def sign_in_user(request):
     """Signs in a user using Supabase authentication. Also returns csrf token for the session. The csrf token is sent with random value per login."""
     if request.method == "POST":
+        user_ip_adress = get_client_ip(request)
+        if not user_ip_adress:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "Missing ip adress."
+                }, status=403)
+
+        requestEnabled, remaining_requests = canRequest(user_id=str(user_ip_adress), action_name='user_signin', max_tokens=15, refill_rate=0.05)
+        if not requestEnabled:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "The register endpoint has been called too many times. Please try again latter."
+                }, status=429)
 
         supabase_manager = SupabaseManager()
 
@@ -165,10 +191,22 @@ def sign_in_user(request):
     return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 @csrf_exempt
-@ratelimit(key='ip', rate='100/h', block=True)
 def refresh_token(request):
     """Refreshes the authentication token using Supabase."""
     if request.method == "POST":
+        user_ip_adress = get_client_ip(request)
+        if not user_ip_adress:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "Missing ip adress."
+                }, status=403)
+
+        requestEnabled, remaining_requests = canRequest(user_id=str(user_ip_adress), action_name='user_refresh', max_tokens=100, refill_rate=0.025)
+        if not requestEnabled:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "The register endpoint has been called too many times. Please try again latter."
+                }, status=429)
 
         supabase_manager = SupabaseManager()
 
@@ -242,11 +280,23 @@ def refresh_token(request):
     return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 @csrf_exempt
-@ratelimit(key='ip', rate='100/h', block=True)
 def sign_out_user(request):
     """Signs out a user using Supabase authentication."""
     if request.method == "POST":
 
+        user_ip_adress = get_client_ip(request)
+        if not user_ip_adress:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "Missing ip adress."
+                }, status=403)
+
+        requestEnabled, remaining_requests = canRequest(user_id=str(user_ip_adress), action_name='user_logout', max_tokens=20, refill_rate=0.5)
+        if not requestEnabled:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "The log out endpoint has been called too many times. Please try again latter."
+                }, status=429)
         supabase_manager = SupabaseManager()
 
         if request.content_type == 'application/json':
@@ -293,12 +343,24 @@ def sign_out_user(request):
     return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use POST to send a request."}, status=405)
 
 @csrf_exempt
-@ratelimit(key='ip', rate='40/m', block=True)
 def refresh_csrf_token(request):
     """Returns a CSRF token for the client."""
     if request.method == "GET":
+        user_ip_adress = get_client_ip(request)
+        if not user_ip_adress:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "Missing ip adress."
+                }, status=403)
 
-        token = get_token(request)
+        requestEnabled, remaining_requests = canRequest(user_id=str(user_ip_adress), action_name='user_csrf', max_tokens=40, refill_rate=0.5)
+        if not requestEnabled:
+            return JsonResponse({
+                "res_status": "error", 
+                "response": "The refresh csrf endpoint has been called too many times. Please try again latter."
+                }, status=429)
+        
+            token = get_token(request)
         return JsonResponse({"res_status": "success", "response": "Token generated successfully"}, status=200)
     else:
         return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use GET to send a request."}, status=405)
@@ -306,7 +368,6 @@ def refresh_csrf_token(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='20/m', block=True)
 def update_user_keys(request):
     """ Update users api keys in database"""
     if request.method == "PUT":
@@ -327,6 +388,14 @@ def update_user_keys(request):
 
             if not user_id:
                 return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_updatekey', max_tokens=30, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The update user key endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+        
             
             key_type = data_r.get("key_type")
             api_key = data_r.get("api_key")
@@ -373,7 +442,6 @@ def update_user_keys(request):
     
 
 @csrf_exempt
-@ratelimit(key='ip', rate='20/m', block=True)
 def remove_key(request):
     """ Remove users api key in the db"""
     if request.method == "PUT":
@@ -393,6 +461,14 @@ def remove_key(request):
 
             if not user_id:
                 return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_removekey', max_tokens=30, refill_rate=0.5)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The remove user key endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+            
             key_type = data_r.get("key_type")
 
             if not all([user_id, key_type]):
@@ -421,7 +497,6 @@ def remove_key(request):
         return JsonResponse({"res_status": "error", "response": "Invalid request method. Please use PUT to send a request."}, status=405)
     
 @csrf_exempt
-@ratelimit(key='ip', rate='20/m', block=True)
 def get_user_info(request):
     """Get user info based on auth_id"""
     if request.method == "GET":
@@ -436,6 +511,12 @@ def get_user_info(request):
             if not user_id:
                 return JsonResponse({"status": "error", "response": "user_id is required"}, status=400)
                    
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_getuserinfo', max_tokens=30, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The get user info endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             user_keys = get_user_api_keys(user_id)
             user_embed_data = UserVectorMetadata.objects.filter(user_id=user_id)

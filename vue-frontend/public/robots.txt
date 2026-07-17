@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /chatbot
+
+Disallow: /testcases
+Disallow: /create-testcase
+Disallow: /testcase-statistics/
+
+Disallow: /supabase/
+Disallow: /pinecone/
+
+Disallow: /auth
+
+Sitemap: https://www.testora.svivanovic.org/sitemap.xml

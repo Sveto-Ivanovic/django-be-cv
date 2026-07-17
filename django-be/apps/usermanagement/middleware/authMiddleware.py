@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from django.http import HttpResponse, HttpRequest, JsonResponse
 from supabase.client import ClientOptions
-
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 
 load_dotenv()
 
@@ -38,6 +38,28 @@ def auth_middleware(get_response):
 
     def is_exempt_path(path: str) -> bool:
         return any(path.startswith(exempt) for exempt in EXEMPT_PATHS)
+    
+    def global_ip_throttle(request: HttpRequest):
+        ip = get_client_ip(request)
+        if not ip:
+            return JsonResponse(
+                {"res_status": "error", "response": "Missing IP address."},
+                status=403
+            )
+
+        allowed, remaining = canRequest(
+            user_id=str(ip),
+            action_name="global_ip_throttle",
+            max_tokens=60,
+            refill_rate=60,
+        )
+        print(f"Request status: {allowed}. Remaining attempts: {remaining}.")
+        if not allowed:
+            return JsonResponse(
+                {"res_status": "error", "response": "Too many requests from this IP. Please slow down."},
+                status=429
+            )
+        return None
 
     def extract_token(request: HttpRequest) -> str | None:
         try:
@@ -103,6 +125,9 @@ def auth_middleware(get_response):
 
         async def middleware(request: HttpRequest):
             print(f"\n[Request] {request.method} {request.path}")
+            throttle_response = global_ip_throttle(request)
+            if throttle_response is not None:
+                return throttle_response
 
             try:
                 if is_exempt_path(request.path):
@@ -148,7 +173,9 @@ def auth_middleware(get_response):
 
         def middleware(request: HttpRequest):
             print(f"\n[Request] {request.method} {request.path}")
-
+            throttle_response = global_ip_throttle(request)
+            if throttle_response is not None:
+                return throttle_response
             try:
                 if is_exempt_path(request.path):
                     print("[Middleware] Exempt path, skipping auth")
