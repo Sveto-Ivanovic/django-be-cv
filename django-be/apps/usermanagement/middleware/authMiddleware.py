@@ -51,7 +51,7 @@ def auth_middleware(get_response):
             user_id=str(ip),
             action_name="global_ip_throttle",
             max_tokens=60,
-            refill_rate=60,
+            refill_rate=0.5,
         )
         print(f"Request status: {allowed}. Remaining attempts: {remaining}.")
         if not allowed:

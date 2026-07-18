@@ -8,7 +8,7 @@ from .lua_scripts import lua_task_blocker, lua_token_request_limiter
 load_dotenv()
 
 
-r = redis.Redis(host=os.getenv("REDIS_HOST"),port=6379,decode_responses=True)
+r = redis.Redis(host=os.getenv("REDIS_HOST"),port=6379,decode_responses=True, password=os.getenv("REDIS_PASSWORD"))
 
 enableTask = r.register_script(lua_task_blocker)
 rateLimiter = r.register_script(lua_token_request_limiter)
