@@ -10,8 +10,27 @@ services:
     container_name: django-docker
     env_file:
       - ./django-be/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+        restart: true
     networks:
       - internal_network
+
+  redis:
+    build: ./redis
+    container_name: redis-docker
+    env_file:
+      - ./redis/.env
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   fe-vue:
     build:

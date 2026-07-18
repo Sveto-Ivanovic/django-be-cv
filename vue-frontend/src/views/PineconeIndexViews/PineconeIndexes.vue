@@ -79,7 +79,6 @@ import type { FormInst, FormItemRule, FormRules } from 'naive-ui'
 
 const { isFetching, isFetched, isSuccess, isError, data } = globalAPI.userPinecone.fetchPineconeIndexes()
 const fetchedData = computed(() => {
-    console.log(data.value?.data.response)
     if (data.value?.data.response && typeof data.value?.data.response === 'object') { return data.value?.data.response ?? [] }
 })
 const router = useRouter()

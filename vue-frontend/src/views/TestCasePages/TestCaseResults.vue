@@ -62,7 +62,6 @@ import { useWindowSize } from '@vueuse/core'
 const { isFetching, isFetched, isSuccess, isError, data } = globalAPI.userEval.getAggregateResults()
 
 const fetchedData = computed(() => {
-    console.log(data.value?.data.response)
     if (data.value?.data.response && typeof data.value?.data.response === 'object') { return data.value?.data.response ?? [] }
 })
 

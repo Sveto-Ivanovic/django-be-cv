@@ -5,14 +5,13 @@ from dotenv import load_dotenv
 from ..loggerChatbot import logger
 from ..models import VectorSearch1536, VectorSearch2048, VectorSearch3072, UserVectorMetadata
 from django.utils import timezone
-from django_ratelimit.decorators import ratelimit
 from apps.core.utilis.orm_functions.user_related_orm import get_user, log_user_action
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 
 load_dotenv(override=True)
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='GET', block=True)
 def get_supabase_tables(request):
     if request.method == "GET":
         try:
@@ -26,6 +25,13 @@ def get_supabase_tables(request):
             if not user_id:
                 return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
 
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_getsupabasetables', max_tokens=15, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
+            
             vector_search_metadata = UserVectorMetadata.objects.filter(user_id=user_id, namespace_type="supabase").values("namespace", "model", "row_count", "additional_info", "updated_at", "created_at", "supabase_table_name")
             response = list(vector_search_metadata)
 
@@ -44,7 +50,6 @@ def get_supabase_tables(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_supabase_records(request):
     if request.method == "POST":
         try:
@@ -63,6 +68,13 @@ def delete_supabase_records(request):
             user_id = usr_response["user_id"]
             if not user_id:
                 return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_deletesupabaserecords', max_tokens=15, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             table_name = data.get("table_name")
             if not table_name:
@@ -112,7 +124,6 @@ def delete_supabase_records(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='GET', block=True)
 def list_supabase_table_records(request):
     if request.method == "GET":
         try:
@@ -126,6 +137,13 @@ def list_supabase_table_records(request):
             user_id = usr_response["user_id"]
             if not user_id:
                 return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_listsupabasetablerecords', max_tokens=15, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             table_name = query_params.get("table_name")
             if not table_name:
@@ -168,7 +186,6 @@ def list_supabase_table_records(request):
 
 
 @csrf_exempt
-@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 def delete_supabase_namespace(request):
     if request.method == "POST":
         try:
@@ -188,6 +205,13 @@ def delete_supabase_namespace(request):
 
             if not user_id:
                 return JsonResponse({"res_status": "error", "response": "user_id is required"}, status=400)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_deletesupabasenamespace', max_tokens=15, refill_rate=0.25)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The endpoint has been called too many times. Please try again latter."
+                    }, status=429)
 
             namespace = data.get("namespace")
             if not namespace:

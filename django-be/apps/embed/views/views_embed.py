@@ -14,6 +14,7 @@ from ..services.embedRecordSupabase import embed_record_supabase_async
 from ..models import UserVectorMetadata
 from asgiref.sync import sync_to_async
 from apps.core.utilis.orm_functions.user_related_orm import get_user_async, log_user_action_async, get_user_api_keys_async
+from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
 
 
 def success_response(response, status=200):
@@ -49,7 +50,6 @@ def namespace_supabase_handler(user_id, namespace, namespace_type, table_name=No
 load_dotenv(override=True)
 
 @csrf_exempt
-#@ratelimit(key='ip', rate='4/m', method='POST', block=True)
 async def embed_items_into_pinecone(request):
     if request.method=="POST":
         try:
@@ -71,6 +71,21 @@ async def embed_items_into_pinecone(request):
             user_id = user.get("user_id") if user else None
             if not user_id:
                 return error_response("User not found for the provided authentication ID.", status=404)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_embed', max_tokens=5, refill_rate=0.001111111)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The embed endpoints have been called too many times. Please try again latter."
+                    }, status=429)
+            
+            taskEnabled = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1600, mode='start')
+
+            if not taskEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The embed task concurrent limit hasa been hit. Please try again latter."
+                    }, status=429)
         
             index_name = data_r.get("index_name")
             embed_model = data_r.get("embed_model")
@@ -92,16 +107,20 @@ async def embed_items_into_pinecone(request):
             if user_api_keys:
                 logger.info(f"API keys retrieved for user {user_id}: {user_api_keys}")
             else:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
                 return error_response("No API keys found for the provided user ID.", status=404)
             
             pinecone_api_key = user_api_keys.get("pinecone_api_key")
             if not pinecone_api_key:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
                 return error_response("No Pinecone API key found for the provided user ID.", status=404)
 
             if lexical_index_name is not None and not Pinecone(api_key=pinecone_api_key).has_index(lexical_index_name):
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
                 return error_response(f"Pinecone lexical index '{lexical_index_name}' not found. Please create the index before embedding records.", status=404)
 
             if not Pinecone(api_key=pinecone_api_key).has_index(index_name):
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
                 return error_response("Index not found.", status=404)
      
             # Destringify data, input_metadata and chunking configuration if they are strings, and convert them to dictionaries if necessary
@@ -146,13 +165,15 @@ async def embed_items_into_pinecone(request):
             )
 
             await log_user_action_async(user_obj, f"Embedded items into Pinecone index {index_name} using model {embed_model}", log_type="embedding_pinecone")
-
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
             return success_response(res)
           
         except json.JSONDecodeError:
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
             logger.error("Error decoding JSON")
             return error_response("Invalid JSON payload", status=500)
         except Exception as e:
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
             logger.error(f"Error occured in embed_items_into_pinecone: {str(e)}")
             return error_response(str(e), status=500)
 
@@ -160,7 +181,6 @@ async def embed_items_into_pinecone(request):
     return error_response("Invalid request method. Please use POST to send a message.", status=400)
 
 @csrf_exempt
-#@ratelimit(key='ip', rate='4/m', method='POST', block=True)   
 async def embed_items_into_supabase(request):
     if request.method=="POST":
         try:
@@ -180,6 +200,21 @@ async def embed_items_into_supabase(request):
             user_id = user.get("user_id") if user else None
             if not user_id:
                 return error_response("User not found for the provided authentication ID.", status=404)
+            
+            requestEnabled, remaining_requests = canRequest(user_id=str(user_id), action_name='user_embed', max_tokens=5, refill_rate=0.001111111)
+            if not requestEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The embed endpoints have been called too many times. Please try again latter."
+                    }, status=429)
+            
+            taskEnabled = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1600, mode='start')
+
+            if not taskEnabled:
+                return JsonResponse({
+                    "res_status": "error", 
+                    "response": "The embed task concurrent limit hasa been hit. Please try again latter."
+                    }, status=429)
 
             embed_model = data_r.get("embed_model")
             input_mode = data_r.get("input_mode")
@@ -206,6 +241,7 @@ async def embed_items_into_supabase(request):
             if user_api_keys:
                 logger.info(f"API keys retrieved for user {user_id}: {user_api_keys}")
             else:
+                taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
                 return error_response("No API keys found for the provided user ID.", status=404)  
 
             # Destringify data, input_metadata and chunking configuration if they are strings, and convert them to dictionaries if necessary
@@ -245,14 +281,16 @@ async def embed_items_into_supabase(request):
             )
 
             await log_user_action_async(user_obj, f"Embedded items into Supabase table {table_name} using model {embed_model}", log_type="embedding_pinecone")
-
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
             return success_response(res)
           
         except json.JSONDecodeError:
             logger.error("Error decoding JSON")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
             return error_response("Invalid JSON payload", status=500)
         except Exception as e:
             logger.error(f"Error occured in embed_items_into_supabase: {str(e)}")
+            taskEnabledEnd = canTask(user_id=str(user_id), task_name='user_embed', max_limit=1, exp=1800, mode='finish')
             return error_response(str(e), status=500)
 
    

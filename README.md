@@ -172,7 +172,7 @@ To get this project up and running on your local machine, follow these steps:
 
 ### Root Directory
 
-```
+```text
 django-be-cv/
 ├── django-be/        # Django backend application
 ├── vue-frontend/     # Vue.js frontend application
@@ -180,6 +180,9 @@ django-be-cv/
 └── README.md
 ```
 
+### Frontend Structure (`vue-frontend/`)
+
+```text
 vue-frontend/
 ├── src/
 │   ├── components/       # Reusable UI components (e.g., ChatWindow.vue, LoadingSpinner.vue)
@@ -193,34 +196,36 @@ vue-frontend/
 ├── public/               # Static public files
 ├── vite.config.ts        # Vite configuration
 └── package.json          # Project dependencies and scripts
+```
 
+### Backend Structure (`django-be/`)
 
-
-django-be-cv/
-├── django-be/               # Main Django project directory
-│   ├── apps/                # Directory for Django applications
-│   │   ├── chatbot/         # Django app for the AI chatbot
-│   │   │   ├── services/    # Contains LangChain/LangGraph related services
-│   │   │   ├── views.py     # Chatbot API endpoints
-│   │   │   └── ...
-│   │   ├── contact/         # Django app for contact functionalities
-│   │   ├── core/            # Django app for core functionalities
-│   │   ├── embed/           # Django app for embedding text, images, and pdfs into Supabase or Pinecone
-│   │   ├── usermanagement/  # Django app for managing user authentication
-│   │   ├── vector_search/   # Django app for vector search functionalities
-│   │   ├── evaluate/        # Django app for benchmark evaluation with vectorstore
-│   │   └── __init__.py      # Python package initialization file
-│   ├── config/              # Main Django project configuration
-│   │   ├── __init__.py      # Python package initialization file
-│   │   ├── asgi.py          # ASGI configuration for Django
-│   │   ├── settings.py      # Project settings
-│   │   ├── urls.py          # Main URL routing
-│   │   └── wsgi.py          # WSGI configuration for Django
-│   └── manage.py            # Django's command-line utility
-├── .env.example             # Example environment variables file
-├── .gitignore               # Specifies intentionally untracked files to ignore
-├── README.md                # Project README file
-└── requirements.txt         # Python dependencies
+```text
+django-be/
+├── apps/                    # Directory for Django applications
+│   ├── chatbot/             # AI chatbot application
+│   │   ├── services/        # LangChain/LangGraph services
+│   │   ├── views.py         # Chatbot API endpoints
+│   │   └── ...
+│   ├── contact/             # Contact and messaging functionality
+│   ├── core/                # Core application logic
+│   ├── embed/               # Embedding text, images, and PDFs into Supabase or Pinecone
+│   ├── usermanagement/      # User authentication and management
+│   ├── vector_search/       # Vector search implementation
+│   ├── evaluate/            # Benchmark evaluation with vector stores
+│   └── __init__.py
+├── config/                  # Django project configuration
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── manage.py
+├── .env.example
+├── .gitignore
+├── README.md
+└── requirements.txt
+```
 
 ### Frontend Structure (`vue-frontend/src/` )
 

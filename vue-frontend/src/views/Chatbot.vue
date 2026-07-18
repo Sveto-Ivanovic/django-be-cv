@@ -300,7 +300,6 @@ const semanticSearchOptions = ['cosine', 'euclidean', 'inner_product'].map(
     })
 )
 
-console.log(userStore.userInfo)
 const indexOptionsDense = computed(() => {
     const denseOptions = userStore.userInfo?.pinecone_indexes
         .filter((item) => item.model !== "None")
@@ -329,7 +328,6 @@ const { data: dataHist, isFetched: isFetchedHist, isFetching: isFetchingHist, is
 const { mutateAsync: callChatbot } = globalAPI.userChatbot.callChatbot()
 
 const history_simulation = computed(() => {
-    console.log(dataHist.value?.data.response)
     if (dataHist.value?.data.response && typeof dataHist.value?.data.response !== 'string') { return dataHist.value?.data.response ?? [] }
 
 })
@@ -451,13 +449,11 @@ async function handleSendMessage() {
         }
     }
     else if (selectVectorStore.value === 'pinecone' && pineconeIndexNameSelected.value !== null) {
-        console.log(pineconeIndexNameSelected.value)
         const model = userStore.userInfo?.pinecone_indexes.filter(item => item.name == pineconeIndexNameSelected.value)[0]?.model
         if (model === undefined) {
             console.log("Undefined mode")
             return
         }
-        console.log(model)
         data['pinecone_metadata'] = {
             index_name: pineconeIndexNameSelected.value,
             top_k: !Number.isNaN(pineconeTopK.value) && Number(pineconeTopK.value) >= 3 ? Number(pineconeTopK.value) : 3,
@@ -472,7 +468,6 @@ async function handleSendMessage() {
 
     try {
         const response = await callChatbot(data)
-        console.log(response)
 
         const lastMessage = messages.value[messages.value.length - 1]
 

@@ -62,13 +62,13 @@ import {
 } from '@vicons/ionicons5'
 import { NIcon } from 'naive-ui'
 import { computed, h, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import Testora from './Testora.vue'
 import { useWindowSize } from '@vueuse/core'
 import { globalAPI } from '../services/index.js'
-import router from '../router/index.js'
 
 
+const router = useRouter()
 const {mutateAsync: logoutUser} = globalAPI.userManagment.logOutUser()
 function renderIcon(icon: Component) {
     return () => h(NIcon, null, { default: () => h(icon) })

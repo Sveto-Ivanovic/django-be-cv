@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div v-if="mounted">
         <div v-if="isMobile" class="pipeline">
             <div class="step">
                 <Vue3Lottie animationLink="/animations/PDF Generating.json" :height="100" :width="100" />
@@ -76,11 +76,18 @@
 
 
 <script setup lang="ts">
-import { Vue3Lottie } from 'vue3-lottie'
-import { ref, onMounted, watchEffect, computed } from "vue";
+
+import { ref, onMounted, watchEffect, computed, shallowRef } from "vue";
 import VueApexCharts from 'vue3-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { useWindowSize } from '@vueuse/core'
+
+const Vue3Lottie = shallowRef<any>(null)
+const mounted = ref(false)
+onMounted(async () => { const mod = await import('vue3-lottie')
+    Vue3Lottie.value = mod.Vue3Lottie
+    mounted.value = true
+})
 
 const options = ref<ApexOptions>({
     chart: { type: 'bar',

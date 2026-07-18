@@ -35,7 +35,6 @@ import LoadingComponent from '../../components/LoadingComponent.vue';
 const { isFetching, isFetched, isSuccess, isError, data } = globalAPI.userSupabase.fetchSupabaseNamespaces()
 
 const fetchedData = computed(() => {
-    console.log(data.value?.data.response)
     if (data.value?.data.response && typeof data.value?.data.response === 'object') { return data.value?.data.response ?? [] }
 })
 
