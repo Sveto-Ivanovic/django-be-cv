@@ -24,6 +24,6 @@ jobs:
           cd ~/app/django-be-cv
           git pull
           export VITE_BE_HOST=https://api.testora.svivanovic.org
-          sudo -E docker compose build redis be-django fe-vue nginx
-          sudo -E docker compose up -d redis be-django fe-vue nginx
-          sudo -E docker compose exec nginx nginx -s reload
+          docker compose build redis be-django fe-vue nginx
+          docker compose up -d redis be-django fe-vue nginx
+          docker compose exec nginx nginx -s reload
