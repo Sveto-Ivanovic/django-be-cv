@@ -81,5 +81,4 @@ sudo -E  docker compose run --rm certbot certonly --webroot --webroot-path /var/
 sed -i 's/^#//' ./nginx/conf/app.conf
 sudo -E  docker compose down nginx && docker compose up -d nginx
 # for auto renewal
-#
 sudo -E  docker compose up -d certbot-renew
