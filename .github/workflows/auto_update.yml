@@ -1,0 +1,24 @@
+# note this yml file requires you having the self run actions on yout vps
+# go to settings -> actions -> runners -> new self hosted runner and copy paste the code into your vps
+name: Automate re-deployment of app on main branch change
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  redeploy:
+    runs-on: self-hosted
+    steps:
+      - name: Redeploy the app
+        run: |
+          cd ~/app/django-be-cv
+          git pull
+          export VITE_BE_HOST=https://api.testora.svivanovic.org
+          sudo -E docker compose build redis be-django fe-vue nginx
+          sudo -E docker compose up -d redis be-django fe-vue nginx
+          sudo -E docker compose exec nginx nginx -s reload
