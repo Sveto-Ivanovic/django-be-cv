@@ -5,6 +5,7 @@
 # passwd -l deployer
 # su - deployer
 # the execution of sh files has safety check so you dont run it as sudo, make new user for the runnable
+# test
 name: Automate re-deployment of app on main branch change
 
 on:
