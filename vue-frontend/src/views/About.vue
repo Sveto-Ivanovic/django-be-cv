@@ -55,6 +55,9 @@
             <span>Web Development</span>
             <span>Django</span>
             <span>Vue.js</span>
+            <span>Redis</span>
+            <span>Nginx</span>
+            <span>Github</span>
           </div>
         </div>
 

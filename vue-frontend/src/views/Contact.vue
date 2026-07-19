@@ -60,6 +60,17 @@
         <span class="icon-wrapper" v-html="icons.linkedin"></span>
         <span>LinkedIn</span>
       </a>
+
+      <a
+        v-if="contactInfo.github"
+        class="contact-info-row"
+        :href="contactInfo.github"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="icon-wrapper" v-html="icons.github"></span>
+        <span>GitHub</span>
+      </a>
     </div>
   </div>
 
@@ -129,6 +140,17 @@
           <span class="icon-wrapper" v-html="icons.linkedin"></span>
           <span>LinkedIn</span>
         </a>
+
+        <a
+          v-if="contactInfo.github"
+          class="contact-info-row"
+          :href="contactInfo.github"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="icon-wrapper" v-html="icons.github"></span>
+          <span>GitHub</span>
+        </a>
       </div>
     </div>
   </div>
@@ -151,12 +173,14 @@ const contactInfo = ref({
   email: "svetoivanovic788@gmail.com",
   phone: "+38267 243 849",
   linkedin: "https://www.linkedin.com/in/svetozar-ivanovi%C4%87-ab7261334/",
+  github: "https://github.com/Sveto-Ivanovic/django-be-cv",
 });
 
 const icons = {
   email: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>`,
   phone: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
   linkedin: `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.114 20.452H3.558V9h3.556v11.452z"/></svg>`,
+  github: `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55 0-.27-.01-1.16-.02-2.11-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.67 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.9-.39.98 0 1.98.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.8 1.18 1.83 1.18 3.08 0 4.4-2.69 5.37-5.26 5.66.42.36.78 1.08.78 2.18 0 1.57-.02 2.84-.02 3.23 0 .3.2.66.79.55A10.52 10.52 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z"/></svg>`,
 };
 
 async function submitForm() {
