@@ -1,5 +1,9 @@
 # note this yml file requires you having the self run actions on yout vps
 # go to settings -> actions -> runners -> new self hosted runner and copy paste the code into your vps
+# sudo adduser github
+# sudo usermod -aG sudo github
+# su - github
+# the execution of sh files has safety check so you dont run it as sudo, make new user for the runnable
 name: Automate re-deployment of app on main branch change
 
 on:
