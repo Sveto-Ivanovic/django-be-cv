@@ -23,8 +23,8 @@
 
             </div>
             <div class="no-namespace" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching">
-                No
-                No testcases found ... </div>
+                <NoDataComponent text="No testcases found. Would you like to create one?" routeName="TestCaseCreate" />
+            </div>
             <div class="loader" v-else-if="isFetching">
                 <LoadingComponent></LoadingComponent>
             </div>
@@ -58,6 +58,7 @@ import { useRouter } from 'vue-router';
 import VueApexCharts from 'vue3-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { useWindowSize } from '@vueuse/core'
+import NoDataComponent from '../../components/NoDataComponent.vue';
 
 const { isFetching, isFetched, isSuccess, isError, data } = globalAPI.userEval.getAggregateResults()
 

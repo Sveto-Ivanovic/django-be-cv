@@ -15,8 +15,9 @@
             </div>
 
         </div>
-        <div class="no-namespace" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching"> No
-            Supabase Namespaces found ... </div>
+        <div class="no-namespace" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching">
+            <NoDataComponent text="No Supabase Namespaces found. Would you like to create one?" routeName="SupabaseEmbed" />
+        </div>
         <div class="loader" v-else-if="isFetching">
             <LoadingComponent></LoadingComponent>
         </div>
@@ -28,9 +29,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { globalAPI } from '../../services'
-import SkeletionLoader from '../../components/SkeletionLoader.vue';
 import SupabaseVectorStoreCard from '../../components/VectorStoreCards/SupabaseVectorStoreCard.vue';
 import LoadingComponent from '../../components/LoadingComponent.vue';
+import NoDataComponent from '../../components/NoDataComponent.vue';
 
 const { isFetching, isFetched, isSuccess, isError, data } = globalAPI.userSupabase.fetchSupabaseNamespaces()
 

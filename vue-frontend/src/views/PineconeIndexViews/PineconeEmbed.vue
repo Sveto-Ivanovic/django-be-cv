@@ -1,4 +1,10 @@
 <template>
+    <div v-if="!userStore.hasPineconeKey" class="red-warning" @click="redirectToProfile()">
+        <p>Please configure your Pinecone API key first.</p>
+    </div>
+    <div v-if="!userStore.hasEmbedKey" class="red-warning" @click="redirectToProfile()">
+        <p>Please configure your Embed API key first.</p>
+    </div>
     <n-form class="form-class embed-form" ref="formRef" label-placement="top" :label-width="80" :model="formValue"
         :rules="rules">
 
@@ -97,7 +103,7 @@
         </div>
 
         <n-form-item class="submit-row">
-            <n-button :loading="isLoading" type="primary" size="large" class="submit-button" @click="submitForm">
+            <n-button :loading="isLoading" :disabled="!userStore.hasPineconeKey || !userStore.hasEmbedKey" type="primary" size="large" class="submit-button" @click="submitForm">
                 Submit
             </n-button>
         </n-form-item>
@@ -113,6 +119,7 @@ import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
 import InfoPopOver from '../../components/InfoPopOver.vue'
 import { globalAPI } from '../../services'
 import type { PineconeEmbedRequestForm, PineconeEmbedRequestText } from '../../services/vector_store/pinecone_indexes/types'
+import { useRouter } from 'vue-router'
 
 
 
@@ -318,6 +325,11 @@ function validateData(rule: FormItemRule, value: string): boolean {
     return isTextMetadataArray
 }
 
+const router = useRouter()
+function redirectToProfile() {
+    router.push({ name: 'Profile' })
+}
+
 const dataFormatExample = `Option 1 — array of strings:
 [
   "Time is one of the most valuable resources...",
@@ -431,6 +443,20 @@ function submitForm(e: MouseEvent) {
 
 
 <style scoped>
+.red-warning {
+    background-color: #ffe5e5;
+    color: #ff0000;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.red-warning:hover {
+    cursor: pointer;
+    background-color: #ffcccc;
+}
+
 .embed-form {
     display: flex;
     flex-direction: column;

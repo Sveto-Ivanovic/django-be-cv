@@ -1,5 +1,10 @@
 <template>
-
+    <div v-if="!userStore.hasLLmKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your LLM API key first.</p>
+    </div>
+    <div v-if="!userStore.hasEmbedKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your Embed API key first.</p>
+    </div>
     <div class="chatbot-wrapper" v-if="isSuccessHist">
 
         <div class="chatbot-screen-wrapper">
@@ -211,6 +216,7 @@ import QALoader from '../components/QALoader.vue';
 import { globalAPI } from '../services';
 import LoadingComponent from '../components/LoadingComponent.vue';
 import type { ChatbotRequest, ChatbotResponse, NearestNeighborSetting } from '../services/chatbot/types';
+import { useRouter } from 'vue-router';
 
 const conversation_id = ref("")
 const query = ref('')
@@ -382,6 +388,10 @@ function handleShiftEnter(e: KeyboardEvent) {
 
 
 async function handleSendMessage() {
+    if(userStore.hasLLmKey === false || userStore.hasEmbedKey === false) {
+        alert("Please configure your API keys first.")
+        return
+    }
     // check if we have query
     isDisabled.value = true
     console.log(query)
@@ -506,12 +516,34 @@ function newChat() {
     conversation_id.value = ""
 }
 
-
+const router = useRouter()
+function redirectToProfile() {
+    router.push({ name: 'Profile' })
+}
 
 </script>
 
 
 <style scoped>
+.red-warning {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 4px;
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: red;
+    background-color: #f0dada;
+    font-family: 'Times New Roman', Times, serif;
+    letter-spacing: 0.01em;
+    border-radius: 16px;
+}
+.red-warning:hover {
+    cursor: pointer;
+    background-color: #ffcccc;
+}
 .loader {
     display: flex;
     flex-direction: column;

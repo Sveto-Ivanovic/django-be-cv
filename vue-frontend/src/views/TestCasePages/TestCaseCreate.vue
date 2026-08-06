@@ -1,4 +1,10 @@
 <template>
+        <div v-if="!userStore.hasEmbedKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your Embed API key first.</p>
+    </div>
+        <div v-if="!userStore.hasLLmKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your LLM API key first.</p>
+    </div>
     <n-form class="form-class embed-form" ref="formRef" label-placement="top" :label-width="80" :model="formValue"
         :rules="rules">
 
@@ -159,7 +165,7 @@
         </div>
 
         <n-form-item class="submit-row">
-            <n-button :loading="isLoading" type="primary" size="large" class="submit-button" @click="submitForm">
+            <n-button :loading="isLoading" :disabled="!userStore.hasEmbedKey || !userStore.hasLLmKey" type="primary" size="large" class="submit-button" @click="submitForm">
                 Submit
             </n-button>
         </n-form-item>
@@ -175,6 +181,7 @@ import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
 import InfoPopOver from '../../components/InfoPopOver.vue'
 import { globalAPI } from '../../services'
 import type { ValidateJsonRequest, ValidateTextRequest } from '../../services/testcase/types'
+import { useRouter } from 'vue-router'
 
 
 
@@ -493,6 +500,11 @@ function validateData(rule: FormItemRule, value: string): boolean {
 
     return allHaveIt || noneHaveIt
 }
+const router = useRouter()
+function redirectToProfile() {
+    
+    router.push({ name: 'Profile' })
+}
 
 const dataFormatExample = `Array of objects, uniform shape:
 
@@ -701,6 +713,20 @@ function submitForm(e: MouseEvent) {
 
 
 <style scoped>
+
+.red-warning {
+    background-color: #ffcccc;
+    color: #a94442;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.red-warning:hover {
+    cursor: pointer;
+    background-color: #ff9999;
+}
 .embed-form {
     display: flex;
     flex-direction: column;
