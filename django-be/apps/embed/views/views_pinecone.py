@@ -251,7 +251,7 @@ def get_pinecone_indexes(request):
             pinecone_api_key = fetch_pinecone_api_key_and_decode_aes(user_id)
 
             if pinecone_api_key is None:
-                raise ValueError("Pinecone API key is required.")
+                return success_response([], status=200)
 
             pc = Pinecone(api_key=pinecone_api_key)
             listed_indexes = pc.list_indexes()

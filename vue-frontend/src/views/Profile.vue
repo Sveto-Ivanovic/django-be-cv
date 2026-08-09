@@ -181,6 +181,7 @@ import { ref } from 'vue';
 import { globalAPI } from '../services';
 import { useUserStore } from '../stores/user_store';
 import type { FormInst } from 'naive-ui';
+import type { AxiosError } from 'axios';
 
 
 const userStore = useUserStore()
@@ -247,14 +248,24 @@ const rules = {
 const isLoading = ref(false)
 async function handleApiReqClick(key_type: string, api_key: string) {
     isLoading.value = true
-    const reponse = await updateApiKey({
+    try{
+        const reponse = await updateApiKey({
         key_type: key_type,
         api_key: api_key
     })
-    isLoading.value = false
-    showModal.value = false
-    showModalData.value.key_type = ""
-    showModalData.value.message = ""
+    }
+    catch (error: AxiosError | any) {
+    
+        if(error.response.status === 422){
+            alert("Invalid API Key. Please check your key and try again.")
+        }
+      
+    } finally {
+        isLoading.value = false
+        showModal.value = false
+        showModalData.value.key_type = ""
+        showModalData.value.message = ""
+    }
 }
 
 </script>

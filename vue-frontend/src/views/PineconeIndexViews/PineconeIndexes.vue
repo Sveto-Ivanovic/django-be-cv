@@ -17,9 +17,17 @@
             </div>
 
         </div>
-        <div class="no-index" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching"> No
-            Pinecone
-            Indexes found </div>
+        <div class="no-index" v-else-if="isSuccess && fetchedData && fetchedData?.length == 0 && !isFetching">
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
+                <div class="no-index-text">No Pinecone Indexes found. Would you like to create one?</div>
+            <button
+            style="color: var(--text-color); font-size: 16px; border: none; font-weight: 500; background-color: transparent; cursor: pointer; display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 8px;"
+            @click="createIndex()"> Create Index <span class="arrow">{{ '+' }}</span></button>
+        </div>
+        
+            
+
+        </div>
         <div class="loader" v-else-if="isFetching">
             <LoadingComponent></LoadingComponent>
         </div>
@@ -76,6 +84,7 @@ import PineconeVectorStoreCard from '../../components/VectorStoreCards/PineconeV
 import { useRouter } from 'vue-router';
 import LoadingComponent from '../../components/LoadingComponent.vue';
 import type { FormInst, FormItemRule, FormRules } from 'naive-ui'
+import NoDataComponent from '../../components/NoDataComponent.vue';
 
 const { isFetching, isFetched, isSuccess, isError, data } = globalAPI.userPinecone.fetchPineconeIndexes()
 const fetchedData = computed(() => {

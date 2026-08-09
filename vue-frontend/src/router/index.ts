@@ -133,11 +133,16 @@ export const routes = [
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/MissingPage.vue')
+  },
+  {
+    path: '/tutorial',
+    name: 'Tutorial',
+    component: () => import('../views/Tutorial.vue')
   }
 ]
 
 /*
-// removed because i want home contact and about prerendered for optimized SOO
+// removed because i want home contact and about prerendered for optimized SEO
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,

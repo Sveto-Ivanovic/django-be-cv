@@ -1,5 +1,10 @@
 <template>
-
+    <div v-if="!userStore.hasLLmKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your LLM API key first.</p>
+    </div>
+    <div v-if="!userStore.hasEmbedKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your Embed API key first.</p>
+    </div>
     <div class="chatbot-wrapper" v-if="isSuccessHist">
 
         <div class="chatbot-screen-wrapper">
@@ -211,7 +216,10 @@ import QALoader from '../components/QALoader.vue';
 import { globalAPI } from '../services';
 import LoadingComponent from '../components/LoadingComponent.vue';
 import type { ChatbotRequest, ChatbotResponse, NearestNeighborSetting } from '../services/chatbot/types';
+import { useRouter } from 'vue-router';
+import { useMessage } from 'naive-ui';
 
+const message = useMessage()
 const conversation_id = ref("")
 const query = ref('')
 const showModal = ref(false)
@@ -356,10 +364,41 @@ watch(
     llmModelOptions,
     (newOptions) => {
         if (newOptions.length >= 1 && newOptions[0] && !selectedModel.value) {
-            selectedModel.value = newOptions[0].value
+            const user_preferences = localStorage.getItem(userStore.userInfo?.user_id + '_' + conversation_id.value + '_llm_model_preference')
+            const llm_model_preference = user_preferences ? JSON.parse(user_preferences).llm_model : null
+            selectedModel.value = llm_model_preference && newOptions.map((o) => o.value).includes(llm_model_preference) ? llm_model_preference : newOptions[0].value
         }
     },
     { immediate: true }
+)
+
+// here is localstorage for last used preference selected 
+watch(
+    conversation_id,
+    (currentConversationId)=>{
+        const user_preferences = localStorage.getItem(userStore.userInfo?.user_id + '_' + currentConversationId + '_llm_model_preference')
+        if(user_preferences){
+            try {
+                const user_preferences_parsed = JSON.parse(user_preferences)
+                selectVectorStore.value = user_preferences_parsed.selectVectorStore ?? 'supabase'
+                supabaseNamespaceSelected.value = user_preferences_parsed.supabaseNamespaceSelected ?? null
+                supabaseTopK.value = user_preferences_parsed.supabaseTopK ?? '3'
+                supabaseMode.value = user_preferences_parsed.supabaseMode ?? null
+                supabaseSemanticSearchMode.value = user_preferences_parsed.supabaseSemanticSearchMode ?? null
+                pineconeIndexNameSelected.value = user_preferences_parsed.pineconeIndexNameSelected ?? null
+                pineconeTopK.value = user_preferences_parsed.pineconeTopK ?? '3'
+                pineconeMode.value = user_preferences_parsed.pineconeMode ?? null
+                pineconeLexicalIndexName.value = user_preferences_parsed.pineconeLexicalIndexName ?? null
+                includeNeighbors.value = user_preferences_parsed.includeNeighbors ?? 'no'
+                getAllNeighborChunks.value = user_preferences_parsed.getAllNeighborChunks ?? 'no'
+                nearestChunksN.value = user_preferences_parsed.nearestChunksN ?? '0'
+                nearestPageOrArrayMembersN.value = user_preferences_parsed.nearestPageOrArrayMembersN ?? '0'
+
+            } catch (e) {
+                console.log("Error parsing user preferences from localStorage:", e)
+            }
+        }
+    }
 )
 
 function setConvId(id: string) {
@@ -382,6 +421,10 @@ function handleShiftEnter(e: KeyboardEvent) {
 
 
 async function handleSendMessage() {
+    if(userStore.hasLLmKey === false || userStore.hasEmbedKey === false) {
+        alert("Please configure your API keys first.")
+        return
+    }
     // check if we have query
     isDisabled.value = true
     console.log(query)
@@ -416,7 +459,6 @@ async function handleSendMessage() {
 
         }
     }
-
 
     // supabase & pinecone configs
     if (selectVectorStore.value === 'supabase' && supabaseNamespaceSelected.value !== null) {
@@ -491,11 +533,15 @@ async function handleSendMessage() {
             } as any)
             conversation_id.value = response.data.response?.conv_id
         }
+        setLocalStoragePreferences(conversation_id.value)
         isDisabled.value = false
 
 
     }
     catch (e) {
+        message.error(`Error: ${e}`, {
+            keepAliveOnHover: true
+        })
         isDisabled.value = false
         console.log(e)
     }
@@ -506,12 +552,85 @@ function newChat() {
     conversation_id.value = ""
 }
 
+const router = useRouter()
+function redirectToProfile() {
+    router.push({ name: 'Profile' })
+}
 
+function setLocalStoragePreferences(conversationId: string) {
+    if (!conversationId) {
+        console.warn("Conversation ID is empty. Preferences will not be saved.");
+        return;
+    }
+    const preferences = {
+        date_created_conversation: new Date().toISOString(),
+        llm_model: selectedModel.value,
+        selectVectorStore: selectVectorStore.value,
+        supabaseNamespaceSelected: supabaseNamespaceSelected.value,
+        supabaseTopK: supabaseTopK.value,
+        supabaseMode: supabaseMode.value,
+        supabaseSemanticSearchMode: supabaseSemanticSearchMode.value,
+        pineconeIndexNameSelected: pineconeIndexNameSelected.value,
+        pineconeTopK: pineconeTopK.value,
+        pineconeMode: pineconeMode.value,
+        pineconeLexicalIndexName: pineconeLexicalIndexName.value,
+        includeNeighbors: includeNeighbors.value,
+        getAllNeighborChunks: getAllNeighborChunks.value,
+        nearestChunksN: nearestChunksN.value,
+        nearestPageOrArrayMembersN: nearestPageOrArrayMembersN.value
+    }
+    localStorage.setItem(userStore.userInfo?.user_id + '_' + conversationId + '_llm_model_preference', JSON.stringify(preferences))
 
+    const localStorageKeys = Object.keys(localStorage);
+    const arrayOfObjects = localStorageKeys.map(key => {
+        const value = localStorage.getItem(key);
+        try {
+            const parsedValue = JSON.parse(value ?? '');
+            if (typeof parsedValue === 'object' && parsedValue !== null && parsedValue.hasOwnProperty('date_created_conversation')) {
+                return { key, value: parsedValue };
+            }
+        } catch (e) {
+            console.error(`Error parsing localStorage item with key "${key}":`, e);
+            localStorage.removeItem(key);
+        }
+    return null;
+
+    }).filter(item => item !== null) as { key: string, value: any }[];
+
+     arrayOfObjects.sort(
+        (a, b) =>
+            new Date(b.value.date_created_conversation).getTime() -
+            new Date(a.value.date_created_conversation).getTime()
+    );
+
+    arrayOfObjects.slice(15).forEach(item => {
+        localStorage.removeItem(item.key);
+    });
+
+}
 </script>
 
 
 <style scoped>
+.red-warning {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 4px;
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: red;
+    background-color: #f0dada;
+    font-family: 'Times New Roman', Times, serif;
+    letter-spacing: 0.01em;
+    border-radius: 16px;
+}
+.red-warning:hover {
+    cursor: pointer;
+    background-color: #ffcccc;
+}
 .loader {
     display: flex;
     flex-direction: column;

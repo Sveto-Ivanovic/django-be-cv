@@ -1,4 +1,7 @@
 <template>
+    <div v-if="!userStore.hasEmbedKey" class="red-warning" @click="redirectToProfile()" >
+        <p>Please configure your Embed API key first.</p>
+    </div>
     <n-form class="form-class embed-form" ref="formRef" label-placement="top" :label-width="80" :model="formValue"
         :rules="rules">
 
@@ -92,7 +95,7 @@
         </div>
 
         <n-form-item class="submit-row">
-            <n-button :loading="isLoading" type="primary" size="large" class="submit-button" @click="submitForm">
+            <n-button :loading="isLoading" :disabled="!userStore.hasEmbedKey" type="primary" size="large" class="submit-button" @click="submitForm">
                 Submit
             </n-button>
         </n-form-item>
@@ -101,16 +104,17 @@
 
 
 <script setup lang="ts">
-import type { FormInst, FormItemRule, FormRules, UploadFileInfo, UploadInst } from 'naive-ui'
+import { useMessage, type FormInst, type FormItemRule, type FormRules, type UploadFileInfo, type UploadInst } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useUserStore } from '../../stores/user_store'
 import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
 import InfoPopOver from '../../components/InfoPopOver.vue'
 import type { SupabaseEmbedRequestForm, SupabaseEmbedRequestText } from '../../services/vector_store/supabase_namespaces/types'
 import { globalAPI } from '../../services'
+import { useRouter } from 'vue-router'
 
 
-
+const message = useMessage()
 const fileListLengthRef = ref(0)
 const uploadRef = ref<UploadInst | null>(null)
 const fileData = ref<UploadFileInfo[] | null>(null)
@@ -307,6 +311,11 @@ function validateData(rule: FormItemRule, value: string): boolean {
     return isTextMetadataArray
 }
 
+const router = useRouter()
+function redirectToProfile() {
+    router.push({ name: 'Profile' })
+}
+
 const dataFormatExample = `Option 1 — array of strings:
 [
   "Time is one of the most valuable resources...",
@@ -367,6 +376,9 @@ function submitForm(e: MouseEvent) {
                     alert("Data successfully emebeded")
                 }
                 catch (e) {
+                    message.error(`Error: ${e}`, {
+                        keepAliveOnHover: true
+                    })
                     console.log(e)
                 }
                 isLoading.value = false
@@ -397,6 +409,9 @@ function submitForm(e: MouseEvent) {
                     }
                     catch (e) {
                         console.log(e)
+                        message.error(`Error: ${e}`, {
+                            keepAliveOnHover: true
+                        })
                     }
                     isLoading.value = false
 
@@ -433,6 +448,22 @@ function submitForm(e: MouseEvent) {
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
+.red-warning {
+    background-color: #ffe5e5;
+    color: #ff0000;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.red-warning:hover {
+    background-color: #ffcccc;
+}
+
+
 
 .form-section {
     display: flex;

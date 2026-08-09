@@ -58,7 +58,8 @@ import {
     LogOutOutline as LogOutIcon,
     CloudUploadOutline as UploadIcon,
     AddCircleOutline as AddIcon,
-    ChatbubbleEllipsesOutline as ChatbotIcon
+    ChatbubbleEllipsesOutline as ChatbotIcon,
+    Clipboard as ClipboardIcon
 } from '@vicons/ionicons5'
 import { NIcon } from 'naive-ui'
 import { computed, h, ref } from 'vue'
@@ -210,7 +211,7 @@ let menuOptions: MenuOption[] = [
         icon: renderIcon(AddIcon)
 
     },
-        {
+    {
         label: () =>
             h(
                 RouterLink,
@@ -225,6 +226,21 @@ let menuOptions: MenuOption[] = [
         icon: renderIcon(ChatbotIcon)
 
     },
+    {
+        label: () =>
+            h(
+                RouterLink,
+                {
+                    to: {
+                        name: 'Tutorial',
+                    }
+                },
+                { default: () => 'Tutorial' }
+            ),
+        key: 'go-to-tutorial',
+        icon: renderIcon(ClipboardIcon)
+
+    }
 
 ]
 

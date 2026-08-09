@@ -18,7 +18,7 @@ from apps.core.utilis.orm_functions.user_related_orm import (
 )
 from apps.embed.models import UserVectorMetadata
 from apps.core.utilis.redis.redis_functions import (canTask, canRequest, get_client_ip)
-
+from apps.core.utilis.validator.validate_api_keys import check_key_validity
 load_dotenv()
 
 
@@ -400,6 +400,10 @@ def update_user_keys(request):
             key_type = data_r.get("key_type")
             api_key = data_r.get("api_key")
             secure_key = base64.b64decode(os.getenv("SECRET_AES_KEY"))
+
+            key_valid = check_key_validity(key_type, api_key)
+            if not key_valid:
+                return JsonResponse({"res_status": "error", "response": "The key is not valid please try again."}, status=422)
 
             if not all([user_id, key_type, api_key]):
                 return JsonResponse({"res_status": "error", "response": "Missing required fields"}, status=400)
