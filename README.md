@@ -253,6 +253,11 @@ The frontend is built with a modular architecture:
 
 ---
 
+## Link to the functional demo site
+
+Link to the functional demo site:
+https://www.testora.svivanovic.org/
+
 ## License
 
 This project is licensed under the MIT License.

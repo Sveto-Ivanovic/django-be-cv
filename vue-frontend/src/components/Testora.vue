@@ -2,7 +2,7 @@
   <div class="testora-root">
     <div class="testora-logo" :style="{ fontSize: `${size}px` }">
 
-      <span class="logo-icon">◈</span>
+      <span v-if="!excludeIcon==true" class="logo-icon">◈</span>
 
       <div v-if="!iconOnly" class="logo-text">
         <span class="primary">TESTORA</span>
@@ -21,12 +21,14 @@ interface Props {
   size?: number;
   includeSubtitle?: boolean;
   iconOnly?: boolean;
+  excludeIcon?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
   size: 24,
   includeSubtitle: true,
   iconOnly: false,
+  excludeIcon: false
 });
 </script>
 

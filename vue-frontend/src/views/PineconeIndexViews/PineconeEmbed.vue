@@ -112,7 +112,7 @@
 
 
 <script setup lang="ts">
-import type { FormInst, FormItemRule, FormRules, UploadFileInfo, UploadInst } from 'naive-ui'
+import { useMessage, type FormInst, type FormItemRule, type FormRules, type UploadFileInfo, type UploadInst } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useUserStore } from '../../stores/user_store'
 import { ArchiveOutline as ArchiveIcon } from '@vicons/ionicons5'
@@ -122,7 +122,7 @@ import type { PineconeEmbedRequestForm, PineconeEmbedRequestText } from '../../s
 import { useRouter } from 'vue-router'
 
 
-
+const message = useMessage()
 const fileListLengthRef = ref(0)
 const uploadRef = ref<UploadInst | null>(null)
 const fileData = ref<UploadFileInfo[] | null>(null)
@@ -385,6 +385,9 @@ function submitForm(e: MouseEvent) {
                     alert("Data successfully emebeded")
                 }
                 catch (e) {
+                    message.error(`Error: ${e}`, {
+                        keepAliveOnHover: true
+                    })
                     console.log(e)
                 }
                 isLoading.value = false
@@ -418,6 +421,9 @@ function submitForm(e: MouseEvent) {
                     }
                     catch (e) {
                         console.log(e)
+                        message.error(`Error: ${e}`, {
+                            keepAliveOnHover: true
+                        })
                     }
                     isLoading.value = false
 
